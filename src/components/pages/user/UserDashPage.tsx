@@ -1,0 +1,742 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { MdReportProblem } from 'react-icons/md';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent
+} from '@/components/ui/chart';
+import {
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  RadialBarChart,
+  RadialBar,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  LineChart
+} from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BadgeCheck, MapPin, Coins, Award } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import GameComp from '../game/GameComp';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader
+} from '@/components/ui/dialog';
+import { Bot, User } from 'lucide-react';
+import Link from 'next/link';
+import { Response } from '~/components/ai-elements/response';
+import { useRouter } from 'next/navigation';
+import { useTRPC } from '~/api/client';
+import { useQuery } from '@tanstack/react-query';
+
+const myComplaints = [
+  { month: 'Jan', open: 1, resolved: 2, total: 3, satisfaction: 4.2 },
+  { month: 'Feb', open: 2, resolved: 1, total: 3, satisfaction: 3.8 },
+  { month: 'Mar', open: 1, resolved: 3, total: 4, satisfaction: 4.5 },
+  { month: 'Apr', open: 0, resolved: 2, total: 2, satisfaction: 4.8 },
+  { month: 'May', open: 1, resolved: 2, total: 3, satisfaction: 4.1 },
+  { month: 'Jun', open: 0, resolved: 1, total: 1, satisfaction: 4.9 }
+];
+
+const localityCleanliness = [
+  { week: 'W1', score: 68, target: 75, improvement: 2.1 },
+  { week: 'W2', score: 72, target: 75, improvement: 1.8 },
+  { week: 'W3', score: 74, target: 75, improvement: 2.7 },
+  { week: 'W4', score: 78, target: 75, improvement: 3.2 }
+];
+
+const complaintsByCategory = [
+  { name: 'Biodegradable', value: 45, color: '#10B981' },
+  { name: 'Non-Biodegradable', value: 30, color: '#F59E0B' },
+  { name: 'E-Waste', value: 15, color: '#EF4444' },
+  { name: 'Hazardous', value: 10, color: '#8B5CF6' }
+];
+
+const weeklyActivity = [
+  { day: 'Mon', reports: 2, points: 40, engagement: 85 },
+  { day: 'Tue', reports: 1, points: 20, engagement: 60 },
+  { day: 'Wed', reports: 3, points: 60, engagement: 90 },
+  { day: 'Thu', reports: 0, points: 10, engagement: 30 },
+  { day: 'Fri', reports: 4, points: 80, engagement: 95 },
+  { day: 'Sat', reports: 2, points: 45, engagement: 70 },
+  { day: 'Sun', reports: 1, points: 25, engagement: 50 }
+];
+
+const environmentalImpact = [
+  { metric: 'CO2 Saved', value: 85, max: 100, unit: 'kg' },
+  { metric: 'Waste Diverted', value: 92, max: 100, unit: '%' },
+  { metric: 'Community Health', value: 78, max: 100, unit: 'pts' },
+  { metric: 'Recycling Rate', value: 88, max: 100, unit: '%' }
+];
+
+const monthlyGoal = 500;
+
+export default function UserDashPage() {
+  const trpc = useTRPC();
+
+  const complaints_q = useQuery(trpc.complaints.list_complaints.queryOptions());
+  const reward_points_q = useQuery(trpc.complaints.user_reward_points.queryOptions());
+
+  const [playing, setPlaying] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch('/complaint');
+  }, [router]);
+
+  if (playing) {
+    return (
+      <div className="space-y-6">
+        <GameComp onExit={() => setPlaying(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1"></div>
+
+        <div className="flex items-center justify-center gap-4 pt-8">
+          <Button
+            onClick={() => router.push('/complaint')}
+            className="group v relative overflow-hidden rounded-full border-2 border-emerald-400/50 bg-gradient-to-r from-emerald-700 to-lime-700 px-4 py-3 text-lg font-bold text-white shadow-2xl shadow-emerald-900/50 transition-all duration-300 hover:scale-105 hover:border-emerald-400/70 hover:shadow-emerald-400/60 focus:ring-4 focus:ring-emerald-300"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              <MdReportProblem className="h-6 w-6 animate-bounce text-yellow-300 drop-shadow-md group-hover:animate-none" />
+              Raise a Complaint
+            </span>
+            <span className="absolute inset-0 bg-gradient-to-r from-lime-500 via-green-600 to-emerald-600 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-30"></span>
+          </Button>
+          <Button
+            onClick={() => setPlaying(true)}
+            className="group relative overflow-hidden rounded-full border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-4 text-xl font-bold text-white shadow-2xl shadow-amber-900/50 transition-all duration-300 hover:scale-105 hover:border-amber-400/70 hover:shadow-amber-400/60 focus:ring-4 focus:ring-amber-300"
+          >
+            <span className="relative z-10 flex items-center gap-3">
+              <span className="text-2xl">🎮</span>
+              <span className="text-base">Play Waste Segregation Game</span>
+            </span>
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20"></span>
+          </Button>
+        </div>
+
+        <div className="flex flex-1 justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="group flex items-center gap-2 rounded-full border-2 border-emerald-400/60 bg-gradient-to-r from-emerald-600 via-green-600 to-lime-600 px-5 py-4 text-white shadow-2xl ring-2 shadow-emerald-900/60 ring-emerald-400/50 transition-all hover:scale-105 hover:border-emerald-400/80 hover:shadow-emerald-400/80 focus:ring-4 focus:ring-emerald-300 focus:outline-hidden">
+                <Bot className="-mt-1 size-8 text-emerald-100 drop-shadow-sm" />
+                <span className="text-lg font-bold">ShuchiAI</span>
+                <span className="absolute inset-0 -z-10 rounded-full bg-emerald-300/0 blur-md transition-all duration-300 group-hover:bg-emerald-300/20" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="h-[70vh] w-full overflow-hidden p-0 outline-hidden sm:max-w-4xl lg:max-w-5xl">
+              <DialogHeader className="sr-only">
+                <DialogTitle>ShuchiAI Chat</DialogTitle>
+                <DialogDescription>Chat assistant dialog</DialogDescription>
+              </DialogHeader>
+              <ChatBot />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={<BadgeCheck className="size-5 text-emerald-600" />}
+          label="Resolved"
+          value="10"
+        />
+        <StatCard icon={<MapPin className="size-5 text-blue-600" />} label="Open" value="2" />
+        {reward_points_q.isLoading || (reward_points_q.isPending && !reward_points_q.isSuccess) ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardDescription>Reward Points</CardDescription>
+                <Coins className="size-5 text-amber-600" />
+              </div>
+              <Skeleton className="h-8 w-20" />
+            </CardHeader>
+          </Card>
+        ) : (
+          <StatCard
+            icon={<Coins className="size-5 text-amber-600" />}
+            label="Reward Points"
+            value={String(reward_points_q.data?.reward_points ?? 0)}
+          />
+        )}
+        <StatCard
+          icon={<Award className="size-5 text-primary" />}
+          label="Level"
+          value="Citizen Helper"
+        />
+      </div>
+
+      {/* My Complaints Table */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>My Complaints</CardTitle>
+          <CardDescription>Track your submitted complaints and their status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {complaints_q.isLoading || complaints_q.isPending ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton className="h-12 flex-1" />
+                  <Skeleton className="h-12 w-32" />
+                  <Skeleton className="h-12 w-32" />
+                  <Skeleton className="h-12 w-32" />
+                  <Skeleton className="h-12 w-32" />
+                  <Skeleton className="h-12 w-32" />
+                </div>
+              ))}
+            </div>
+          ) : complaints_q.data && complaints_q.data.length > 0 ? (
+            <Table className="rounded-lg">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {complaints_q.data.map((complaint) => {
+                  const formatStatus = (status: string) => {
+                    if (status === 'resolved') return 'Resolved';
+                    if (status === 'in_progress') return 'In Progress';
+                    if (status === 'closed') return 'Closed';
+                    return 'Open';
+                  };
+
+                  const formatDate = (date: Date | string) => {
+                    const d = typeof date === 'string' ? new Date(date) : date;
+                    return d.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    });
+                  };
+
+                  const formatLocation = (lat: number, lng: number) => {
+                    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                  };
+
+                  return (
+                    <TableRow key={complaint.id}>
+                      <TableCell className="font-medium">{complaint.id.substring(0, 8)}</TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <MapPin className="size-3 text-muted-foreground" />
+                        {formatLocation(complaint.latitude, complaint.longitude)}
+                      </TableCell>
+                      <TableCell className="capitalize">{complaint.category}</TableCell>
+                      <TableCell className="max-w-xs truncate">{complaint.title}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
+                            complaint.status === 'resolved'
+                              ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
+                              : complaint.status === 'in_progress'
+                                ? 'border-cyan-700 bg-cyan-900/30 text-cyan-400'
+                                : 'border-amber-700 bg-amber-900/30 text-amber-400'
+                          }`}
+                        >
+                          {formatStatus(complaint.status)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {complaint.created_at ? formatDate(complaint.created_at) : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 text-4xl">✨</div>
+              <p className="text-lg font-medium text-foreground">No complaints, all good!</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Your area is clean and complaint-free. Keep up the great work!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>My Complaints & Satisfaction</CardTitle>
+            <CardDescription>Tracking resolution progress and satisfaction ratings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                open: { label: 'Open', color: 'hsl(0 84% 60%)' },
+                resolved: { label: 'Resolved', color: 'hsl(152.4 76.2% 40%)' },
+                satisfaction: { label: 'Satisfaction', color: 'hsl(217 91% 60%)' }
+              }}
+              className="h-72"
+            >
+              <ComposedChart data={myComplaints}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis yAxisId="count" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis
+                  yAxisId="rating"
+                  orientation="right"
+                  domain={[0, 5]}
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                />
+                <ChartTooltip
+                  content={<ChartTooltipContent />}
+                  cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  yAxisId="count"
+                  dataKey="open"
+                  fill="var(--color-open)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.8}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="resolved"
+                  fill="var(--color-resolved)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.8}
+                />
+                <Line
+                  yAxisId="rating"
+                  type="monotone"
+                  dataKey="satisfaction"
+                  stroke="var(--color-satisfaction)"
+                  strokeWidth={3}
+                  dot={{ fill: 'var(--color-satisfaction)', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: 'var(--color-satisfaction)', strokeWidth: 2 }}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Complaint Categories</CardTitle>
+            <CardDescription>Distribution by waste type</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                biodegradable: { label: 'Biodegradable', color: '#10B981' },
+                nonBiodegradable: { label: 'Non-Biodegradable', color: '#F59E0B' },
+                eWaste: { label: 'E-Waste', color: '#EF4444' },
+                hazardous: { label: 'Hazardous', color: '#8B5CF6' }
+              }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={complaintsByCategory}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {complaintsByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={({ payload, label }) => {
+                      if (!payload || payload.length === 0) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-md">
+                          <p className="font-medium">{data.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {data.value}% of complaints
+                          </p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <ChartLegend
+                    content={({ payload }) => (
+                      <ul className="grid grid-cols-2 gap-1 text-xs">
+                        {payload?.map((entry, index) => (
+                          <li key={index} className="flex items-center gap-1">
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span>{entry.value}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Locality Cleanliness Progress</CardTitle>
+            <CardDescription>Weekly scores with target comparison</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                score: { label: 'Score', color: 'hsl(158 64% 52%)' },
+                target: { label: 'Target', color: 'hsl(215 25% 65%)' },
+                improvement: { label: 'Improvement', color: 'hsl(47 96% 53%)' }
+              }}
+              className="h-72"
+            >
+              <ComposedChart data={localityCleanliness}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis
+                  yAxisId="score"
+                  domain={[60, 85]}
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                />
+                <YAxis
+                  yAxisId="improvement"
+                  orientation="right"
+                  domain={[0, 4]}
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                />
+                <ChartTooltip
+                  content={({ payload, label }) => {
+                    if (!payload || payload.length === 0) return null;
+                    return (
+                      <div className="rounded-lg border bg-background p-3 shadow-md">
+                        <p className="mb-2 font-medium">{label}</p>
+                        {payload.map((entry, index) => (
+                          <p key={index} className="text-sm">
+                            <span style={{ color: entry.color }}>{entry.dataKey}: </span>
+                            {entry.value}
+                            {entry.dataKey === 'improvement'
+                              ? '% increase'
+                              : entry.dataKey === 'score'
+                                ? '/100'
+                                : ''}
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area
+                  yAxisId="score"
+                  dataKey="score"
+                  stroke="var(--color-score)"
+                  fill="var(--color-score)"
+                  fillOpacity={0.3}
+                />
+                <Line
+                  yAxisId="score"
+                  type="monotone"
+                  dataKey="target"
+                  stroke="var(--color-target)"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                />
+                <Bar
+                  yAxisId="improvement"
+                  dataKey="improvement"
+                  fill="var(--color-improvement)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.7}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Activity Overview</CardTitle>
+            <CardDescription>Reports submitted and engagement levels</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                reports: { label: 'Reports', color: 'hsl(152.4 76.2% 40%)' },
+                points: { label: 'Points Earned', color: 'hsl(47 96% 53%)' },
+                engagement: { label: 'Engagement', color: 'hsl(217 91% 60%)' }
+              }}
+              className="h-72"
+            >
+              <ComposedChart data={weeklyActivity}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis yAxisId="count" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis
+                  yAxisId="percentage"
+                  orientation="right"
+                  domain={[0, 100]}
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  yAxisId="count"
+                  dataKey="reports"
+                  fill="var(--color-reports)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.8}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="points"
+                  fill="var(--color-points)"
+                  radius={[4, 4, 0, 0]}
+                  opacity={0.6}
+                />
+                <Line
+                  yAxisId="percentage"
+                  type="monotone"
+                  dataKey="engagement"
+                  stroke="var(--color-engagement)"
+                  strokeWidth={3}
+                  dot={{ fill: 'var(--color-engagement)', strokeWidth: 2, r: 4 }}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* <div className="grid gap-4 lg:grid-cols-4">
+        {environmentalImpact.map((impact, index) => (
+          <Card key={index}>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">{impact.metric}</CardDescription>
+              <div className="flex items-baseline gap-2">
+                <CardTitle className="text-2xl">{impact.value}</CardTitle>
+                <span className="text-sm text-muted-foreground">{impact.unit}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{ value: { label: impact.metric, color: 'hsl(158 64% 52%)' } }}
+                className="h-20"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    data={[{ value: impact.value, max: impact.max }]}
+                    startAngle={90}
+                    endAngle={-270}
+                    innerRadius="60%"
+                    outerRadius="90%"
+                  >
+                    <RadialBar
+                      dataKey="value"
+                      cornerRadius={10}
+                      fill="var(--color-value)"
+                      opacity={0.8}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        ))}
+      </div> */}
+
+      {/* Game preview could be embedded here in future */}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardDescription>{label}</CardDescription>
+          {icon}
+        </div>
+        <CardTitle className="text-2xl">{value}</CardTitle>
+      </CardHeader>
+    </Card>
+  );
+}
+
+const ChatBot = () => {
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat' })
+  });
+  const [input, setInput] = useState('');
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const initialAssistantMd = `### Hi, I’m ShuchiAI 👋\n\nI can help you with:\n\n- Raising or tracking complaints\n- Understanding cleanliness insights\n- Earning and redeeming reward points\n\nAsk me anything to get started!`;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Bot className="size-5 text-emerald-600" />
+          <span className="font-semibold">ShuchiAI</span>
+        </div>
+        {/* <span
+          className={cn(
+            'text-xs',
+            status === 'streaming' ? 'text-amber-600' : 'text-muted-foreground'
+          )}
+        >
+          {status === 'streaming' ? 'Thinking…' : 'Ready'}
+        </span> */}
+      </div>
+
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
+        {messages.length === 0 && (
+          <div className="flex w-full items-start justify-start gap-3">
+            <Avatar className="size-8">
+              <AvatarFallback>
+                <Bot className="size-4" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="max-w-[80%] rounded-2xl border bg-background px-4 py-2 text-sm text-foreground shadow-sm">
+              <Response className="prose prose-sm dark:prose-invert prose-pre:rounded-md prose-code:before:content-[''] prose-code:after:content-[''] max-w-none">
+                {initialAssistantMd}
+              </Response>
+            </div>
+          </div>
+        )}
+        {messages.map((m) => {
+          const isUser = m.role === 'user';
+          const text = m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('');
+          return (
+            <div
+              key={m.id}
+              className={cn(
+                'flex w-full items-start gap-3',
+                isUser ? 'justify-end' : 'justify-start'
+              )}
+            >
+              {!isUser && (
+                <Avatar className="size-8">
+                  <AvatarFallback>
+                    <Bot className="size-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <div
+                className={cn(
+                  'max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm',
+                  isUser
+                    ? 'bg-gradient-to-r from-emerald-600 to-lime-600 text-white'
+                    : 'border bg-background text-foreground'
+                )}
+              >
+                {isUser ? (
+                  <div className="whitespace-pre-wrap">{text}</div>
+                ) : (
+                  <Response className="prose prose-sm dark:prose-invert prose-pre:rounded-md prose-code:before:content-[''] prose-code:after:content-[''] max-w-none">
+                    {text}
+                  </Response>
+                )}
+              </div>
+              {isUser && (
+                <Avatar className="size-8">
+                  <AvatarFallback>
+                    <User className="size-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const trimmed = input.trim();
+          if (!trimmed || status !== 'ready') return;
+          sendMessage({ text: trimmed });
+          setInput('');
+        }}
+        className="border-t p-3"
+      >
+        <div className="flex items-center gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={status !== 'ready'}
+            placeholder="Ask anything about cleanliness, complaints, rewards…"
+            className="flex-1"
+          />
+          <Button type="submit" disabled={status !== 'ready' || !input.trim()}>
+            Send
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};

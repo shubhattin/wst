@@ -1,0 +1,456 @@
+'use client';
+
+import { useRef, useState, useEffect } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { CheckCircle2, MapPin, Sparkles } from 'lucide-react';
+import { useTRPC } from '~/api/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+export default function ComplaintPage() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const [apiLoaded, setApiLoaded] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<'biodegradable' | 'non-biodegradable' | 'other' | ''>(
+    ''
+  );
+  const [done, setDone] = useState(false);
+  const [refId, setRefId] = useState<string | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  const FALLBACK_COORDS = [25.4596052, 81.8522483];
+  const FALLBACK = { lat: FALLBACK_COORDS[0], lng: FALLBACK_COORDS[1] };
+
+  function isValidCoords(
+    coords: { lat: number; lng: number } | null | undefined
+  ): coords is { lat: number; lng: number } {
+    return (
+      !!coords &&
+      typeof coords.lat === 'number' &&
+      typeof coords.lng === 'number' &&
+      !isNaN(coords.lat) &&
+      !isNaN(coords.lng) &&
+      coords.lat >= -90 &&
+      coords.lat <= 90 &&
+      coords.lng >= -180 &&
+      coords.lng <= 180
+    );
+  }
+
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (!key) return;
+    const loader = new Loader({ apiKey: key, version: 'weekly' });
+    loader
+      .load()
+      .then(() => setApiLoaded(true))
+      .catch(() => setApiLoaded(false));
+  }, []);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (isValidCoords(userCoords)) {
+          setCoords(userCoords);
+        }
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!apiLoaded || !mapRef.current) return;
+
+    function init(center: { lat: number; lng: number }) {
+      if (!isValidCoords(center)) {
+        console.warn('Invalid coordinates provided to init:', center);
+        center = FALLBACK;
+      }
+
+      const gm = new google.maps.Map(mapRef.current as HTMLDivElement, {
+        center,
+        zoom: 17,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        streetViewControl: false
+      });
+      setMap(gm);
+
+      const m = new google.maps.Marker({ position: center, map: gm, draggable: true });
+      setMarker(m);
+      if (!isValidCoords(coords)) {
+        setCoords(center);
+      }
+
+      gm.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
+        const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        if (isValidCoords(pos)) {
+          m.setPosition(pos);
+          setCoords(pos);
+        }
+      });
+
+      m.addListener('dragend', () => {
+        const p = m.getPosition();
+        if (!p) return;
+        const pos = { lat: p.lat(), lng: p.lng() };
+        if (isValidCoords(pos)) {
+          setCoords(pos);
+        }
+      });
+    }
+
+    const initialCenter = isValidCoords(coords) ? coords : FALLBACK;
+    init(initialCenter);
+  }, [apiLoaded]);
+
+  useEffect(() => {
+    if (!map || !marker) return;
+    if (!isValidCoords(coords)) return;
+    map.setCenter(coords);
+    marker.setPosition(coords);
+  }, [coords, map, marker]);
+
+  const submit_new_complaint_mut = useMutation(
+    trpc.complaints.submit_new_complaint.mutationOptions({
+      onSuccess: async (data) => {
+        setRefId(data.id);
+        setDone(true);
+        await queryClient.invalidateQueries(trpc.complaints.list_complaints.queryOptions());
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      }
+    })
+  );
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+
+    if (!description.trim()) {
+      toast.error('Please enter a description');
+      return;
+    }
+
+    if (!isValidCoords(coords)) {
+      toast.error('Please select a valid location on the map');
+      return;
+    }
+
+    if (
+      !category ||
+      (category !== 'biodegradable' && category !== 'non-biodegradable' && category !== 'other')
+    ) {
+      toast.error('Please select a valid category');
+      return;
+    }
+
+    submit_new_complaint_mut.mutate({
+      title: title.trim(),
+      description: description.trim(),
+      category: category,
+      longitude: coords.lng,
+      latitude: coords.lat
+    });
+  }
+
+  if (done) {
+    const mapUrl =
+      coords &&
+      typeof coords.lat === 'number' &&
+      typeof coords.lng === 'number' &&
+      !isNaN(coords.lat) &&
+      !isNaN(coords.lng)
+        ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+        : '#';
+    return (
+      <div className="mx-auto grid min-h-[70vh] max-w-3xl place-items-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+          className="relative w-full"
+        >
+          <Card className="w-full overflow-hidden">
+            <motion.div
+              initial={{ backgroundPosition: '0% 50%' }}
+              animate={{ backgroundPosition: '100% 50%' }}
+              transition={{ duration: 2.2, repeat: Infinity, repeatType: 'mirror' }}
+              className="h-20 w-full bg-gradient-to-r from-emerald-500/25 via-blue-500/25 to-violet-500/25 bg-[length:200%_200%]"
+            />
+            <CardHeader className="-mt-10">
+              <div className="flex items-center gap-3">
+                <span className="relative inline-flex items-center justify-center rounded-full bg-emerald-500/10 p-2 text-emerald-600 ring-1 ring-emerald-500/20">
+                  <motion.span
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: [1, 1.12, 1] }}
+                    transition={{ duration: 1.6, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full ring-2 ring-emerald-400/40"
+                    style={{ filter: 'blur(1px)' }}
+                  />
+                  <motion.span
+                    initial={{ rotate: -8 }}
+                    animate={{ rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                  >
+                    <CheckCircle2 className="size-6" />
+                  </motion.span>
+                </span>
+                <div>
+                  <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                    Thank you for reporting!
+                    <Sparkles className="size-4 text-blue-500" />
+                  </CardTitle>
+                  <CardDescription>
+                    Your report has been noted and forwarded to the local authority.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {refId ? (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                  Reference ID:{' '}
+                  <span className="font-mono font-semibold tracking-wider">{refId}</span>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="size-4" />
+                  {coords &&
+                  typeof coords.lat === 'number' &&
+                  typeof coords.lng === 'number' &&
+                  !isNaN(coords.lat) &&
+                  !isNaN(coords.lng)
+                    ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
+                    : 'N/A'}
+                </span>
+                {mapUrl !== '#' ? (
+                  <a
+                    href={mapUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-md border px-2 py-1 text-xs hover:bg-accent"
+                  >
+                    View on Google Maps
+                  </a>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button asChild className="transition-transform hover:scale-[1.02]">
+                  <Link href="/user_dashboard">Go to Dashboard</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    submit_new_complaint_mut.reset();
+                    setDone(false);
+                    setRefId(null);
+                    setTitle('');
+                    setDescription('');
+                    setCategory('');
+                    formRef.current?.reset();
+                  }}
+                  className="transition-transform hover:scale-[1.02]"
+                >
+                  Report another issue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <ConfettiBurst key={refId} />
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto grid min-h-[70vh] max-w-5xl gap-4 p-4 lg:grid-cols-[1.2fr_1fr]">
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Select Location</CardTitle>
+          <CardDescription>
+            Click on the map or drag the marker to pinpoint the issue.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div ref={mapRef} className="h-[420px] w-full rounded-lg border" />
+          <div className="mt-3 text-xs text-muted-foreground">
+            {coords &&
+            typeof coords.lat === 'number' &&
+            typeof coords.lng === 'number' &&
+            !isNaN(coords.lat) &&
+            !isNaN(coords.lng)
+              ? `Selected: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
+              : 'Loading map...'}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Raise a Complaint</CardTitle>
+          <CardDescription>This is a mock form. No data is stored.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                name="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="E.g., Garbage dumping near park"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as typeof category)}
+                required
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="biodegradable">Biodegradable</SelectItem>
+                  <SelectItem value="non-biodegradable">Non-biodegradable</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                placeholder="Describe the issue briefly..."
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="image">Image (optional)</Label>
+              <Input id="image" name="image" type="file" accept="image/*" />
+            </div>
+            <div className="space-y-1">
+              <Label>Selected Coordinates</Label>
+              <div className="rounded-md border bg-muted/50 px-3 py-2 text-xs">
+                {coords &&
+                typeof coords.lat === 'number' &&
+                typeof coords.lng === 'number' &&
+                !isNaN(coords.lat) &&
+                !isNaN(coords.lng)
+                  ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
+                  : 'Select on map'}
+              </div>
+            </div>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={
+                  !coords ||
+                  !(
+                    typeof coords.lat === 'number' &&
+                    typeof coords.lng === 'number' &&
+                    !isNaN(coords.lat) &&
+                    !isNaN(coords.lng)
+                  ) ||
+                  submit_new_complaint_mut.isPending
+                }
+                className="w-full"
+              >
+                {submit_new_complaint_mut.isPending ? 'Submitting...' : 'Submit Complaint'}
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              By submitting you agree this is a public-spirited report and contains no personal
+              data.
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ConfettiBurst() {
+  // lightweight confetti using CSS animated dots
+  const dots = Array.from({ length: 24 });
+  return (
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="relative mx-auto h-full w-full max-w-3xl">
+        {dots.map((_, i) => (
+          <motion.span
+            key={i}
+            initial={{ opacity: 0, y: 0, x: 0, scale: 0.8 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              y: [0, -80 - (i % 5) * 15, -120 - (i % 5) * 20],
+              x: [
+                0,
+                (i % 2 === 0 ? 1 : -1) * (30 + (i % 6) * 12),
+                (i % 2 === 0 ? 1 : -1) * (50 + (i % 6) * 15)
+              ],
+              scale: [0.8, 1.2, 1, 0.8]
+            }}
+            transition={{
+              duration: 2.5 + (i % 5) * 0.15,
+              delay: i * 0.05,
+              ease: 'easeOut'
+            }}
+            className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              backgroundColor:
+                i % 4 === 0
+                  ? '#10b981'
+                  : i % 4 === 1
+                    ? '#3b82f6'
+                    : i % 4 === 2
+                      ? '#a78bfa'
+                      : '#f59e0b'
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
