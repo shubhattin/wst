@@ -241,25 +241,25 @@ function UserPopover() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <motion.button
+        {/* <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="inline-flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm shadow-lg transition-all duration-300 hover:border-gray-600 hover:bg-gray-700/50"
-        >
-          <div className="relative">
-            {/* Glowing avatar background */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500 to-green-500 opacity-30 blur" />
-            <Avatar className="relative size-8 bg-gradient-to-br from-cyan-600 to-green-600">
-              <AvatarFallback className="bg-transparent text-sm font-bold text-white">
-                {initials || 'U'}
-              </AvatarFallback>
-              {image && <AvatarImage src={image} />}
-            </Avatar>
-          </div>
-          {/* <span className="hidden max-w-[12rem] truncate font-medium text-gray-200 sm:inline-block">
+        > */}
+        <div className="relative">
+          {/* Glowing avatar background */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500 to-green-500 opacity-30 blur" />
+          <Avatar className="relative size-8 bg-gradient-to-br from-cyan-600 to-green-600">
+            <AvatarFallback className="bg-transparent text-sm font-bold text-white">
+              {initials || 'U'}
+            </AvatarFallback>
+            {image && <AvatarImage src={image} />}
+          </Avatar>
+        </div>
+        {/* <span className="hidden max-w-[12rem] truncate font-medium text-gray-200 sm:inline-block">
             {name}
           </span> */}
-        </motion.button>
+        {/* </motion.button> */}
       </PopoverTrigger>
       <PopoverContent
         align="end"
