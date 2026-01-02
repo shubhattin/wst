@@ -256,9 +256,9 @@ function UserPopover() {
               {image && <AvatarImage src={image} />}
             </Avatar>
           </div>
-          <span className="hidden max-w-[12rem] truncate font-medium text-gray-200 sm:inline-block">
+          {/* <span className="hidden max-w-[12rem] truncate font-medium text-gray-200 sm:inline-block">
             {name}
-          </span>
+          </span> */}
         </motion.button>
       </PopoverTrigger>
       <PopoverContent
