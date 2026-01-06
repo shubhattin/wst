@@ -13,12 +13,17 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CheckCircle2, MapPin, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+type UserDashboardTab = 'dashboard' | 'complaint' | 'game' | 'assistant';
+
+interface ComplaintPageProps {
+  onTabChange?: (tab: UserDashboardTab) => void;
+}
 
 const FALLBACK_COORDS = { lat: 25.4596052, lng: 81.8522483 };
 
@@ -70,7 +75,7 @@ async function loadMarkerLibrary(apiKey: string): Promise<google.maps.MarkerLibr
   return markerLibraryPromise;
 }
 
-export default function ComplaintPage() {
+export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
@@ -354,8 +359,11 @@ export default function ComplaintPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button asChild className="transition-transform hover:scale-[1.02]">
-                  <Link href="/user_dashboard">Go to Dashboard</Link>
+                <Button
+                  onClick={() => onTabChange?.('dashboard')}
+                  className="transition-transform hover:scale-[1.02]"
+                >
+                  Go to Dashboard
                 </Button>
                 <Button
                   variant="outline"

@@ -341,7 +341,7 @@ export default function UserDashPage() {
           {activeTab === 'dashboard' && (
             <DashboardTab complaints_q={complaints_q} reward_points_q={reward_points_q} />
           )}
-          {activeTab === 'complaint' && <RaiseComplaintTab />}
+          {activeTab === 'complaint' && <RaiseComplaintTab onTabChange={setActiveTab} />}
           {activeTab === 'game' && <GamifiedLearningTab />}
           {activeTab === 'assistant' && <ShuchiAITab />}
         </main>
@@ -750,10 +750,10 @@ function DashboardTab({
   );
 }
 
-function RaiseComplaintTab() {
+function RaiseComplaintTab({ onTabChange }: { onTabChange: (tab: UserDashboardTab) => void }) {
   return (
     <div className="space-y-4">
-      <ComplaintPage />
+      <ComplaintPage onTabChange={onTabChange} />
     </div>
   );
 }
