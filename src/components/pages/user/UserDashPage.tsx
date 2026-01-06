@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { MdReportProblem } from 'react-icons/md';
+import { FaRecycle } from 'react-icons/fa';
+import { RiDashboardFill, RiRobotFill } from 'react-icons/ri';
+import { IoMegaphoneSharp, IoGameController } from 'react-icons/io5';
 import {
   ChartContainer,
   ChartLegend,
@@ -54,6 +56,7 @@ import ComplaintPage from '@/components/pages/complaint/ComplaintPage';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -64,8 +67,15 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarSeparator,
   SidebarTrigger
 } from '@/components/ui/sidebar';
+import { AppContext } from '~/components/AddDataContext';
+import { signOut } from '~/lib/auth-client';
+import Link from 'next/link';
+import { AvatarImage } from '@/components/ui/avatar';
+import { LogOut } from 'lucide-react';
+import React from 'react';
 
 const myComplaints = [
   { month: 'Jan', open: 1, resolved: 2, total: 3, satisfaction: 4.2 },
@@ -113,6 +123,7 @@ type UserDashboardTab = 'dashboard' | 'complaint' | 'game' | 'assistant';
 
 export default function UserDashPage() {
   const trpc = useTRPC();
+  const { user_info } = React.useContext(AppContext);
 
   const complaints_q = useQuery(trpc.complaints.list_complaints.queryOptions());
   const reward_points_q = useQuery(trpc.complaints.user_reward_points.queryOptions());
@@ -120,6 +131,21 @@ export default function UserDashPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
+
+  const userName = user_info?.name || 'User';
+  const userEmail = user_info?.email || '';
+  const userImage = user_info?.image;
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  async function handleLogout() {
+    await signOut();
+    router.push('/login');
+  }
 
   const [activeTab, setActiveTab] = useState<UserDashboardTab>(() => {
     if (tabParam === 'complaint') return 'complaint';
@@ -148,86 +174,151 @@ export default function UserDashPage() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-r from-emerald-900/60 via-emerald-900/20 to-transparent">
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/20 text-emerald-400">
-              <BadgeCheck className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium tracking-wide text-emerald-300/80 uppercase">
+        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
+          <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <Link
+              href="/"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
+            >
+              <FaRecycle className="h-6 w-6 text-emerald-400" />
+            </Link>
+            <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+              <span className="truncate text-sm font-bold uppercase tracking-wide text-emerald-300">
                 Nirmal Setu
               </span>
-              <span className="text-[11px] text-sidebar-foreground/70">Citizen Portal</span>
+              <span className="truncate text-xs font-medium text-sidebar-foreground/60">
+                Citizen Portal
+              </span>
             </div>
           </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="overflow-hidden px-2 py-4">
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold tracking-wide text-sidebar-foreground/60 uppercase">
+            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/50">
               Navigation
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-1.5">
                 <SidebarMenuItem>
                   <SidebarMenuButton
+                    size="lg"
                     isActive={activeTab === 'dashboard'}
                     onClick={() => setActiveTab('dashboard')}
+                    tooltip="Dashboard"
                     className={cn(
-                      'justify-start text-sm',
-                      activeTab === 'dashboard' &&
-                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      activeTab === 'dashboard'
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
-                    <BadgeCheck className="h-4 w-4" />
-                    <span>Dashboard</span>
+                    <RiDashboardFill
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        activeTab === 'dashboard' ? 'text-emerald-400' : 'text-blue-400'
+                      )}
+                    />
+                    <span className="font-medium">Dashboard</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
+                    size="lg"
                     isActive={activeTab === 'complaint'}
                     onClick={() => setActiveTab('complaint')}
+                    tooltip="Raise a Complaint"
                     className={cn(
-                      'justify-start text-sm',
-                      activeTab === 'complaint' &&
-                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      activeTab === 'complaint'
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
-                    <MdReportProblem className="h-4 w-4" />
-                    <span>Raise a Complaint</span>
+                    <IoMegaphoneSharp
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        activeTab === 'complaint' ? 'text-emerald-400' : 'text-orange-400'
+                      )}
+                    />
+                    <span className="font-medium">Raise a Complaint</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
+                    size="lg"
                     isActive={activeTab === 'game'}
                     onClick={() => setActiveTab('game')}
+                    tooltip="Gamified Learning"
                     className={cn(
-                      'justify-start text-sm',
-                      activeTab === 'game' &&
-                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      activeTab === 'game'
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
-                    <span className="text-lg leading-none">🎮</span>
-                    <span>Gamified Learning</span>
+                    <IoGameController
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        activeTab === 'game' ? 'text-emerald-400' : 'text-purple-400'
+                      )}
+                    />
+                    <span className="font-medium">Gamified Learning</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
+                    size="lg"
                     isActive={activeTab === 'assistant'}
                     onClick={() => setActiveTab('assistant')}
+                    tooltip="ShuchiAI Assistant"
                     className={cn(
-                      'justify-start text-sm',
-                      activeTab === 'assistant' &&
-                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      activeTab === 'assistant'
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
-                    <Bot className="h-4 w-4" />
-                    <span>ShuchiAI Assistant</span>
+                    <RiRobotFill
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        activeTab === 'assistant' ? 'text-emerald-400' : 'text-cyan-400'
+                      )}
+                    />
+                    <span className="font-medium">ShuchiAI Assistant</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarSeparator className="mx-0" />
+        <SidebarFooter className="border-t border-sidebar-border/60 bg-gradient-to-br from-sidebar/80 to-transparent">
+          <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
+              <Avatar className="relative h-9 w-9 bg-gradient-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
+                <AvatarFallback className="bg-transparent text-xs font-bold text-white">
+                  {userInitials}
+                </AvatarFallback>
+                {userImage && <AvatarImage src={userImage} />}
+              </Avatar>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+              <span className="truncate text-sm font-semibold text-sidebar-foreground">
+                {userName}
+              </span>
+              <span className="truncate text-xs text-sidebar-foreground/60">{userEmail}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors hover:bg-red-500/20 hover:text-red-400 group-data-[collapsible=icon]:hidden"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </SidebarFooter>
         <SidebarRail />
       </Sidebar>
       <SidebarInset>

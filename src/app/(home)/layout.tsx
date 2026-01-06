@@ -1,5 +1,3 @@
-import './globals.css';
-import './app.scss';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { z } from 'zod';

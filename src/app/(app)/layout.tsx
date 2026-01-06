@@ -1,13 +1,16 @@
-import './globals.css';
-import './app.scss';
 import { Metadata } from 'next';
+import NavBar from '~/components/pages/NavBar';
 
 export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+    </>
+  );
 }
 
 // export const runtime = 'edge';
