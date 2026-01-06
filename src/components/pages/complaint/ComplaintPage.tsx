@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,19 +15,72 @@ import {
 } from '@/components/ui/select';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { CheckCircle2, MapPin, Sparkles } from 'lucide-react';
+import { CheckCircle2, MapPin, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+const FALLBACK_COORDS = { lat: 25.4596052, lng: 81.8522483 };
+
+function isValidCoords(
+  coords: { lat: number; lng: number } | null | undefined
+): coords is { lat: number; lng: number } {
+  return (
+    !!coords &&
+    typeof coords.lat === 'number' &&
+    typeof coords.lng === 'number' &&
+    !isNaN(coords.lat) &&
+    !isNaN(coords.lng) &&
+    coords.lat >= -90 &&
+    coords.lat <= 90 &&
+    coords.lng >= -180 &&
+    coords.lng <= 180
+  );
+}
+
+// Singleton loader instance to prevent multiple loads
+let loaderInstance: Loader | null = null;
+let mapsLibraryPromise: Promise<google.maps.MapsLibrary> | null = null;
+let markerLibraryPromise: Promise<google.maps.MarkerLibrary> | null = null;
+
+function getLoader(apiKey: string): Loader {
+  if (!loaderInstance) {
+    loaderInstance = new Loader({
+      apiKey,
+      version: 'weekly',
+      libraries: ['maps', 'marker']
+    });
+  }
+  return loaderInstance;
+}
+
+async function loadMapsLibrary(apiKey: string): Promise<google.maps.MapsLibrary> {
+  const loader = getLoader(apiKey);
+  if (!mapsLibraryPromise) {
+    mapsLibraryPromise = loader.importLibrary('maps');
+  }
+  return mapsLibraryPromise;
+}
+
+async function loadMarkerLibrary(apiKey: string): Promise<google.maps.MarkerLibrary> {
+  const loader = getLoader(apiKey);
+  if (!markerLibraryPromise) {
+    markerLibraryPromise = loader.importLibrary('marker');
+  }
+  return markerLibraryPromise;
+}
 
 export default function ComplaintPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const [apiLoaded, setApiLoaded] = useState(false);
+  const [mapLoadState, setMapLoadState] = useState<'loading' | 'loaded' | 'error' | 'no-key'>(
+    'loading'
+  );
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocationFetched, setUserLocationFetched] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'biodegradable' | 'non-biodegradable' | 'other' | ''>(
@@ -38,105 +91,136 @@ export default function ComplaintPage() {
 
   const formRef = useRef<HTMLFormElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInitializedRef = useRef(false);
 
-  const FALLBACK_COORDS = [25.4596052, 81.8522483];
-  const FALLBACK = { lat: FALLBACK_COORDS[0], lng: FALLBACK_COORDS[1] };
-
-  function isValidCoords(
-    coords: { lat: number; lng: number } | null | undefined
-  ): coords is { lat: number; lng: number } {
-    return (
-      !!coords &&
-      typeof coords.lat === 'number' &&
-      typeof coords.lng === 'number' &&
-      !isNaN(coords.lat) &&
-      !isNaN(coords.lng) &&
-      coords.lat >= -90 &&
-      coords.lat <= 90 &&
-      coords.lng >= -180 &&
-      coords.lng <= 180
-    );
-  }
-
+  // Get user's geolocation
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string | undefined;
-    if (!key) return;
-    const loader = new Loader({ apiKey: key, version: 'weekly' });
-    loader
-      .load()
-      .then(() => setApiLoaded(true))
-      .catch(() => setApiLoaded(false));
-  }, []);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setUserLocationFetched(true);
+      return;
+    }
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (isValidCoords(userCoords)) {
           setCoords(userCoords);
         }
+        setUserLocationFetched(true);
       },
       (error) => {
         console.warn('Geolocation error:', error);
+        setUserLocationFetched(true);
       },
-      { enableHighAccuracy: true, timeout: 5000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
+  // Initialize the map
+  const initializeMap = useCallback(
+    async (center: { lat: number; lng: number }) => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey || !mapRef.current) return;
+
+      try {
+        const [mapsLib, markerLib] = await Promise.all([
+          loadMapsLibrary(apiKey),
+          loadMarkerLibrary(apiKey)
+        ]);
+
+        const { Map } = mapsLib;
+        const { AdvancedMarkerElement } = markerLib;
+
+        const validCenter = isValidCoords(center) ? center : FALLBACK_COORDS;
+
+        const gm = new Map(mapRef.current, {
+          center: validCenter,
+          zoom: 17,
+          mapTypeControl: true,
+          fullscreenControl: true,
+          streetViewControl: false,
+          mapId: 'COMPLAINT_MAP_ID'
+        });
+
+        const m = new AdvancedMarkerElement({
+          position: validCenter,
+          map: gm,
+          gmpDraggable: true
+        });
+
+        // Set initial coords if not already set
+        if (!isValidCoords(coords)) {
+          setCoords(validCenter);
+        }
+
+        // Handle map clicks
+        gm.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (!e.latLng) return;
+          const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+          if (isValidCoords(pos)) {
+            m.position = pos;
+            setCoords(pos);
+          }
+        });
+
+        // Handle marker drag
+        m.addListener('dragend', () => {
+          const p = m.position;
+          if (!p) return;
+          // AdvancedMarkerElement.position can be LatLng, LatLngLiteral, or LatLngAltitudeLiteral
+          let pos: { lat: number; lng: number };
+          if ('lat' in p && typeof p.lat === 'function') {
+            // It's a LatLng object with methods
+            pos = { lat: (p as google.maps.LatLng).lat(), lng: (p as google.maps.LatLng).lng() };
+          } else {
+            // It's a LatLngLiteral or LatLngAltitudeLiteral with plain number properties
+            pos = { lat: p.lat as number, lng: p.lng as number };
+          }
+          if (isValidCoords(pos)) {
+            setCoords(pos);
+          }
+        });
+
+        setMap(gm);
+        setMarker(m);
+        setMapLoadState('loaded');
+      } catch (error) {
+        console.error('Google Maps failed to load:', error);
+        setMapLoadState('error');
+      }
+    },
+    [coords]
+  );
+
+  // Load Google Maps API and initialize map
   useEffect(() => {
-    if (!apiLoaded || !mapRef.current) return;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    function init(center: { lat: number; lng: number }) {
-      if (!isValidCoords(center)) {
-        console.warn('Invalid coordinates provided to init:', center);
-        center = FALLBACK;
-      }
-
-      const gm = new google.maps.Map(mapRef.current as HTMLDivElement, {
-        center,
-        zoom: 17,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        streetViewControl: false
-      });
-      setMap(gm);
-
-      const m = new google.maps.Marker({ position: center, map: gm, draggable: true });
-      setMarker(m);
-      if (!isValidCoords(coords)) {
-        setCoords(center);
-      }
-
-      gm.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return;
-        const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-        if (isValidCoords(pos)) {
-          m.setPosition(pos);
-          setCoords(pos);
-        }
-      });
-
-      m.addListener('dragend', () => {
-        const p = m.getPosition();
-        if (!p) return;
-        const pos = { lat: p.lat(), lng: p.lng() };
-        if (isValidCoords(pos)) {
-          setCoords(pos);
-        }
-      });
+    if (!apiKey) {
+      setMapLoadState('no-key');
+      return;
     }
 
-    const initialCenter = isValidCoords(coords) ? coords : FALLBACK;
-    init(initialCenter);
-  }, [apiLoaded]);
+    // Wait for user location before initializing to avoid unnecessary re-centering
+    // But don't wait too long - if geolocation takes too long, use fallback
+    if (!userLocationFetched) return;
 
+    // Prevent double initialization
+    if (mapInitializedRef.current) return;
+    mapInitializedRef.current = true;
+
+    const initialCenter = isValidCoords(coords) ? coords : FALLBACK_COORDS;
+    initializeMap(initialCenter);
+  }, [userLocationFetched, coords, initializeMap]);
+
+  // Update map center and marker when coords change (after initial load)
   useEffect(() => {
-    if (!map || !marker) return;
+    if (!map || !marker || mapLoadState !== 'loaded') return;
     if (!isValidCoords(coords)) return;
-    map.setCenter(coords);
-    marker.setPosition(coords);
-  }, [coords, map, marker]);
+
+    map.panTo(coords);
+    marker.position = coords;
+  }, [coords, map, marker, mapLoadState]);
 
   const submit_new_complaint_mut = useMutation(
     trpc.complaints.submit_new_complaint.mutationOptions({
@@ -307,15 +391,45 @@ export default function ComplaintPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div ref={mapRef} className="h-[420px] w-full rounded-lg border" />
+          <div className="relative h-[420px] w-full overflow-hidden rounded-lg border">
+            <div ref={mapRef} className="h-full w-full" />
+            {mapLoadState === 'loading' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/80">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Loading map...</span>
+              </div>
+            )}
+            {mapLoadState === 'error' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/80">
+                <AlertCircle className="size-8 text-destructive" />
+                <span className="text-sm text-destructive">Failed to load Google Maps</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    mapInitializedRef.current = false;
+                    setMapLoadState('loading');
+                    const initialCenter = isValidCoords(coords) ? coords : FALLBACK_COORDS;
+                    initializeMap(initialCenter);
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+            {mapLoadState === 'no-key' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/80">
+                <AlertCircle className="size-8 text-amber-500" />
+                <span className="text-sm text-amber-600">Google Maps API key not configured</span>
+              </div>
+            )}
+          </div>
           <div className="mt-3 text-xs text-muted-foreground">
-            {coords &&
-            typeof coords.lat === 'number' &&
-            typeof coords.lng === 'number' &&
-            !isNaN(coords.lat) &&
-            !isNaN(coords.lng)
+            {isValidCoords(coords)
               ? `Selected: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
-              : 'Loading map...'}
+              : mapLoadState === 'loaded'
+                ? 'Click on the map to select a location'
+                : 'Loading...'}
           </div>
         </CardContent>
       </Card>
