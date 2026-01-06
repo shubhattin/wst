@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   ChartContainer,
@@ -28,7 +28,7 @@ import {
   Funnel
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, AlertCircle, ClipboardList, Timer } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ClipboardList, Timer, LogOut } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -61,7 +61,31 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import React, { useContext, useState } from 'react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger
+} from '@/components/ui/sidebar';
+import { FaRecycle } from 'react-icons/fa';
+import { RiDashboardFill } from 'react-icons/ri';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AppContext } from '~/components/AddDataContext';
+import { signOut } from '~/lib/auth-client';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const trendData = [
   { month: 'Jan', raised: 120, resolved: 80, pending: 40, avgResolutionTime: 32 },
@@ -150,7 +174,7 @@ const priorityDistribution = [
 
 const resolutionRate = 90; // percent
 
-export default function AdminDashPage() {
+function AdminMain() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -232,8 +256,6 @@ export default function AdminDashPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<ClipboardList className="size-5 text-primary" />}
@@ -914,6 +936,116 @@ export default function AdminDashPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function AdminDashPage() {
+  const { user_info } = useContext(AppContext);
+  const router = useRouter();
+
+  const userName = user_info?.name || 'Admin';
+  const userEmail = user_info?.email || '';
+  const userImage = user_info?.image;
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  async function handleLogout() {
+    await signOut();
+    router.push('/login');
+  }
+
+  return (
+    <SidebarProvider>
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
+          <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <Link
+              href="/"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
+            >
+              <FaRecycle className="h-6 w-6 text-emerald-400" />
+            </Link>
+            <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+              <span className="truncate text-sm font-bold uppercase tracking-wide text-emerald-300">
+                Nirmal Setu
+              </span>
+              <span className="truncate text-xs font-medium text-sidebar-foreground/60">
+                Admin Console
+              </span>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent className="overflow-hidden px-2 py-4">
+          <SidebarGroup>
+            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/50">
+              Navigation
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1.5">
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    size="lg"
+                    isActive
+                    tooltip="Admin Dashboard"
+                    className="justify-start gap-3 rounded-lg px-3 transition-all duration-200 bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15"
+                  >
+                    <RiDashboardFill className="h-5 w-5 shrink-0 text-emerald-400" />
+                    <span className="font-medium">Dashboard</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarSeparator className="mx-0" />
+        <SidebarFooter className="border-t border-sidebar-border/60 bg-gradient-to-br from-sidebar/80 to-transparent">
+          <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
+              <Avatar className="relative h-9 w-9 bg-gradient-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
+                <AvatarFallback className="bg-transparent text-xs font-bold text-white">
+                  {userInitials}
+                </AvatarFallback>
+                {userImage && <AvatarImage src={userImage} />}
+              </Avatar>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+              <span className="truncate text-sm font-semibold text-sidebar-foreground">
+                {userName}
+              </span>
+              <span className="truncate text-xs text-sidebar-foreground/60">{userEmail}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors hover:bg-red-500/20 hover:text-red-400 group-data-[collapsible=icon]:hidden"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-16 items-center gap-3 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="flex flex-col">
+            <h1 className="text-lg font-semibold leading-tight">Admin Dashboard</h1>
+            <p className="text-xs text-muted-foreground">
+              Monitor and manage complaints, performance, and operations.
+            </p>
+          </div>
+        </header>
+        <main className="flex-1 px-4 py-6">
+          <AdminMain />
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

@@ -24,7 +24,7 @@ export default async function RootLayout({
       <body
         className={cn(
           'antialiased',
-          'overflow-y-scroll bg-black pb-12 text-white sm:px-2 sm:pb-163 lg:px-3 xl:px-4 xl:pb-28 2xl:px-4 2xl:pb-32'
+          'bg-black2 overflow-y-scroll pb-12 text-white sm:px-2 sm:pb-163 lg:px-3 xl:px-4 xl:pb-28 2xl:px-4 2xl:pb-32'
         )}
       >
         <ThemeProvider

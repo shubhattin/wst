@@ -183,7 +183,7 @@ export default function UserDashPage() {
               <FaRecycle className="h-6 w-6 text-emerald-400" />
             </Link>
             <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-sm font-bold uppercase tracking-wide text-emerald-300">
+              <span className="truncate text-sm font-bold tracking-wide text-emerald-300 uppercase">
                 Nirmal Setu
               </span>
               <span className="truncate text-xs font-medium text-sidebar-foreground/60">
@@ -194,7 +194,7 @@ export default function UserDashPage() {
         </SidebarHeader>
         <SidebarContent className="overflow-hidden px-2 py-4">
           <SidebarGroup>
-            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/50">
+            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold tracking-wider text-sidebar-foreground/50 uppercase">
               Navigation
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -313,7 +313,7 @@ export default function UserDashPage() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors hover:bg-red-500/20 hover:text-red-400 group-data-[collapsible=icon]:hidden"
+              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors group-data-[collapsible=icon]:hidden hover:bg-red-500/20 hover:text-red-400"
             >
               <LogOut className="h-4 w-4" />
             </Button>

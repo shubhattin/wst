@@ -1,4 +1,4 @@
-# Nirmal Setu ♻️  
+# Nirmal Setu ♻️
 
 **Problem statement**:- Sustainability: Low-cost Energy Ideas, Student led Eco-solutions
 
@@ -24,8 +24,8 @@ Nirmal Setu is a full‑stack platform that helps citizens, field staff, and adm
 Nirmal Setu is designed as a **software‑only, city‑scale waste accountability platform**.  
 It focuses on:
 
-- ✅ **Citizens** – report issues quickly, learn waste segregation, and stay engaged.  
-- ✅ **Administrators** – monitor city cleanliness, track performance, and close complaints faster.  
+- ✅ **Citizens** – report issues quickly, learn waste segregation, and stay engaged.
+- ✅ **Administrators** – monitor city cleanliness, track performance, and close complaints faster.
 - ✅ **Transparency** – every complaint is geo‑tagged, time‑stamped, and visible in the admin console.
 
 ---
@@ -46,7 +46,7 @@ It focuses on:
 
 The Complaint page provides a smooth, map‑first flow for citizens:
 
-- 🧭 **Live geolocation + draggable marker** using Google Maps JS API.  
+- 🧭 **Live geolocation + draggable marker** using Google Maps JS API.
 - 📍 **Geo‑tagged complaints** – latitude/longitude are captured and stored in the database.
 - 📝 **Structured complaint form**:
   - Title, category (biodegradable / non‑biodegradable / other)
@@ -156,9 +156,9 @@ This page acts as the main **engagement hub** for citizens, combining **learning
 
 Some features from the original concept that can be layered on top of the **already implemented core**:
 
-- 🔮 **Deeper ML‑driven analytics** (true predictive models on top of complaint history).  
-- 🏆 **Full reward ledger & redemption workflows** (beyond current points display).  
-- 📱 **Dedicated mobile app** reusing the same API and auth stack.  
+- 🔮 **Deeper ML‑driven analytics** (true predictive models on top of complaint history).
+- 🏆 **Full reward ledger & redemption workflows** (beyond current points display).
+- 📱 **Dedicated mobile app** reusing the same API and auth stack.
 
 The current codebase already implements the **AI chatbot**, **geo‑tagged complaints**, **gamified training**, and **admin dashboard**, providing a solid foundation for further innovation.
 
