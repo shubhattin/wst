@@ -206,7 +206,7 @@ export default function NavBar({ className }: { className?: string }) {
                   variant="outline"
                   className="flex-1 border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800/50 hover:text-white"
                 >
-                  <Link href="/logout">Logout</Link>
+                  <Link href="/">Logout</Link>
                 </Button>
               )}
             </div>
