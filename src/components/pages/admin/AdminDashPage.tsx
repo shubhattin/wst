@@ -1041,7 +1041,7 @@ export default function AdminDashPage() {
             </p>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6">
+        <main className="flex-1 p-2 md:p-6">
           <AdminMain />
         </main>
       </SidebarInset>

@@ -7,11 +7,7 @@ export default async function AdminDashboard() {
   if (!session) redirect('/login');
   if (session.user.role !== 'admin') redirect('/');
 
-  return (
-    <div className="container mx-auto">
-      <AdminDashPage />
-    </div>
-  );
+  return <AdminDashPage />;
 }
 
 export const metadata = {
