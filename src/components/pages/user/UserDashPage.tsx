@@ -144,7 +144,7 @@ export default function UserDashPage() {
 
   async function handleLogout() {
     await signOut();
-    router.push('/login');
+    router.push('/');
   }
 
   const [activeTab, setActiveTab] = useState<UserDashboardTab>(() => {
@@ -206,7 +206,7 @@ export default function UserDashPage() {
                     onClick={() => setActiveTab('dashboard')}
                     tooltip="Dashboard"
                     className={cn(
-                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'dashboard'
                         ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -218,7 +218,9 @@ export default function UserDashPage() {
                         activeTab === 'dashboard' ? 'text-emerald-400' : 'text-blue-400'
                       )}
                     />
-                    <span className="font-medium">Dashboard</span>
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      Dashboard
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -228,7 +230,7 @@ export default function UserDashPage() {
                     onClick={() => setActiveTab('complaint')}
                     tooltip="Raise a Complaint"
                     className={cn(
-                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'complaint'
                         ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -240,7 +242,9 @@ export default function UserDashPage() {
                         activeTab === 'complaint' ? 'text-emerald-400' : 'text-orange-400'
                       )}
                     />
-                    <span className="font-medium">Raise a Complaint</span>
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      Raise a Complaint
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -250,7 +254,7 @@ export default function UserDashPage() {
                     onClick={() => setActiveTab('game')}
                     tooltip="Gamified Learning"
                     className={cn(
-                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'game'
                         ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -262,7 +266,9 @@ export default function UserDashPage() {
                         activeTab === 'game' ? 'text-emerald-400' : 'text-purple-400'
                       )}
                     />
-                    <span className="font-medium">Gamified Learning</span>
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      Gamified Learning
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -272,7 +278,7 @@ export default function UserDashPage() {
                     onClick={() => setActiveTab('assistant')}
                     tooltip="ShuchiAI Assistant"
                     className={cn(
-                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200',
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'assistant'
                         ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -284,7 +290,9 @@ export default function UserDashPage() {
                         activeTab === 'assistant' ? 'text-emerald-400' : 'text-cyan-400'
                       )}
                     />
-                    <span className="font-medium">ShuchiAI Assistant</span>
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      ShuchiAI Assistant
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -816,6 +824,7 @@ const ChatBot = () => {
     transport: new DefaultChatTransport({ api: '/api/chat' })
   });
   const [input, setInput] = useState('');
+  const formRef = useRef<HTMLFormElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -828,6 +837,14 @@ const ChatBot = () => {
     }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
+
+  useEffect(() => {
+    if (status === 'ready') {
+      const inputEl =
+        formRef.current?.querySelector<HTMLInputElement>('input[data-slot="input"]');
+      inputEl?.focus();
+    }
+  }, [status]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -909,6 +926,7 @@ const ChatBot = () => {
       </div>
 
       <form
+        ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
           const trimmed = input.trim();

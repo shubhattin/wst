@@ -955,7 +955,7 @@ export default function AdminDashPage() {
 
   async function handleLogout() {
     await signOut();
-    router.push('/login');
+    router.push('/');
   }
 
   return (
@@ -991,10 +991,12 @@ export default function AdminDashPage() {
                     size="lg"
                     isActive
                     tooltip="Admin Dashboard"
-                    className="justify-start gap-3 rounded-lg px-3 transition-all duration-200 bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15"
+                    className="justify-start gap-3 rounded-lg px-3 transition-all duration-200 bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
                   >
                     <RiDashboardFill className="h-5 w-5 shrink-0 text-emerald-400" />
-                    <span className="font-medium">Dashboard</span>
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      Dashboard
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
