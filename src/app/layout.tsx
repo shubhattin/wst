@@ -35,15 +35,7 @@ export default async function RootLayout({
         >
           <TRPCProvider>
             <AppContextProvider initialSession={session}>
-              {/* Background with animated gradients */}
-              <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/20 via-cyan-900/20 to-green-900/20" />
-
-              {/* Floating particles - Client only to avoid hydration mismatch */}
-              <FloatingParticles />
-              <div className="relative z-10">
-                <NavBar />
-                {children}
-              </div>
+              {children}
               <Toaster richColors={true} position="bottom-center" />
             </AppContextProvider>
           </TRPCProvider>
@@ -52,18 +44,6 @@ export default async function RootLayout({
     </html>
   );
 }
-
-const getUserInfoFromCookie = async () => {
-  const cookieStore = await cookies();
-  try {
-    const user_ = cookieStore.get('user_info');
-    if (!user_) return null;
-    const [email, password] = z.tuple([z.string(), z.string()]).parse(user_.value.split(':'));
-    return { name: 'Prashant', email };
-  } catch (e) {
-    return null;
-  }
-};
 
 // export const runtime = 'edge';
 

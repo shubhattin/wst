@@ -19,6 +19,8 @@ export default function NavBar({ className }: { className?: string }) {
   const pathname = usePathname();
   const isUserDashboard = pathname === '/user_dashboard';
   const isAdminDashboard = pathname === '/admin_dashboard';
+  const isAbout = pathname === '/about';
+  const isHome = pathname === '/';
 
   return (
     <header
@@ -90,6 +92,18 @@ export default function NavBar({ className }: { className?: string }) {
         )}
 
         <div className="flex items-center gap-3">
+          {isHome && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                href="/about"
+                className="group hidden items-center gap-2.5 rounded-xl border border-transparent px-4 py-2.5 text-gray-300 transition-all duration-300 hover:border-cyan-500/30 hover:bg-gradient-to-r hover:from-cyan-600/20 hover:to-green-600/20 hover:text-white md:flex"
+              >
+                <Zap className="size-5 transition-colors group-hover:text-cyan-400" />
+                <span className="font-medium">About</span>
+              </Link>
+            </motion.div>
+          )}
+
           {!user_info ? (
             <>
               <motion.div
@@ -122,7 +136,7 @@ export default function NavBar({ className }: { className?: string }) {
               </motion.div>
             </>
           ) : (
-            <UserPopover />
+            (isUserDashboard || isAdminDashboard) && <UserPopover />
           )}
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -149,6 +163,13 @@ export default function NavBar({ className }: { className?: string }) {
           className="border-t border-gray-800/50 bg-black/90 backdrop-blur-xl md:hidden"
         >
           <div className="mx-auto max-w-7xl space-y-2 px-6 py-4">
+            {isHome && (
+              <MobileLink href="/about" onClick={() => setOpen(false)}>
+                <Zap className="size-5 text-cyan-400" />
+                <span>About</span>
+              </MobileLink>
+            )}
+
             {user_info?.role === 'user' && !isUserDashboard && (
               <MobileLink href="/user_dashboard" onClick={() => setOpen(false)}>
                 <User className="size-5 text-blue-400" />

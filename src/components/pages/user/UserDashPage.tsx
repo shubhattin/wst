@@ -45,20 +45,27 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import GameComp from '../game/GameComp';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-  DialogDescription,
-  DialogHeader
-} from '@/components/ui/dialog';
 import { Bot, User } from 'lucide-react';
-import Link from 'next/link';
 import { Response } from '~/components/ai-elements/response';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTRPC } from '~/api/client';
 import { useQuery } from '@tanstack/react-query';
+import ComplaintPage from '@/components/pages/complaint/ComplaintPage';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger
+} from '@/components/ui/sidebar';
 
 const myComplaints = [
   { month: 'Jan', open: 1, resolved: 2, total: 3, satisfaction: 4.2 },
@@ -102,77 +109,157 @@ const environmentalImpact = [
 
 const monthlyGoal = 500;
 
+type UserDashboardTab = 'dashboard' | 'complaint' | 'game' | 'assistant';
+
 export default function UserDashPage() {
   const trpc = useTRPC();
 
   const complaints_q = useQuery(trpc.complaints.list_complaints.queryOptions());
   const reward_points_q = useQuery(trpc.complaints.user_reward_points.queryOptions());
 
-  const [playing, setPlaying] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
 
-  useEffect(() => {
-    router.prefetch('/complaint');
-  }, [router]);
+  const [activeTab, setActiveTab] = useState<UserDashboardTab>(() => {
+    if (tabParam === 'complaint') return 'complaint';
+    if (tabParam === 'game') return 'game';
+    if (tabParam === 'assistant') return 'assistant';
+    return 'dashboard';
+  });
 
-  if (playing) {
-    return (
-      <div className="space-y-6">
-        <GameComp onExit={() => setPlaying(false)} />
-      </div>
-    );
-  }
+  const currentTitle =
+    activeTab === 'dashboard'
+      ? 'Dashboard'
+      : activeTab === 'complaint'
+        ? 'Raise a Complaint'
+        : activeTab === 'game'
+          ? 'Gamified Learning'
+          : 'ShuchiAI Assistant';
+  const currentSubtitle =
+    activeTab === 'dashboard'
+      ? 'Overview of your activity, complaints, and locality insights.'
+      : activeTab === 'complaint'
+        ? 'Pin the location and submit a new cleanliness complaint.'
+        : activeTab === 'game'
+          ? 'Learn waste segregation through an interactive game.'
+          : 'Chat with ShuchiAI for help with complaints, insights, and rewards.';
 
   return (
+    <SidebarProvider>
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-r from-emerald-900/60 via-emerald-900/20 to-transparent">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/20 text-emerald-400">
+              <BadgeCheck className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium tracking-wide text-emerald-300/80 uppercase">
+                Nirmal Setu
+              </span>
+              <span className="text-[11px] text-sidebar-foreground/70">Citizen Portal</span>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[11px] font-semibold tracking-wide text-sidebar-foreground/60 uppercase">
+              Navigation
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={activeTab === 'dashboard'}
+                    onClick={() => setActiveTab('dashboard')}
+                    className={cn(
+                      'justify-start text-sm',
+                      activeTab === 'dashboard' &&
+                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                    )}
+                  >
+                    <BadgeCheck className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={activeTab === 'complaint'}
+                    onClick={() => setActiveTab('complaint')}
+                    className={cn(
+                      'justify-start text-sm',
+                      activeTab === 'complaint' &&
+                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                    )}
+                  >
+                    <MdReportProblem className="h-4 w-4" />
+                    <span>Raise a Complaint</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={activeTab === 'game'}
+                    onClick={() => setActiveTab('game')}
+                    className={cn(
+                      'justify-start text-sm',
+                      activeTab === 'game' &&
+                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                    )}
+                  >
+                    <span className="text-lg leading-none">🎮</span>
+                    <span>Gamified Learning</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={activeTab === 'assistant'}
+                    onClick={() => setActiveTab('assistant')}
+                    className={cn(
+                      'justify-start text-sm',
+                      activeTab === 'assistant' &&
+                        'border border-emerald-500/50 bg-emerald-500/10 text-emerald-100 shadow-sm'
+                    )}
+                  >
+                    <Bot className="h-4 w-4" />
+                    <span>ShuchiAI Assistant</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarRail />
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-16 items-center gap-3 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="flex flex-col">
+            <h1 className="text-lg leading-tight font-semibold">{currentTitle}</h1>
+            <p className="text-xs text-muted-foreground">{currentSubtitle}</p>
+          </div>
+        </header>
+        <main className="flex-1 px-4 py-6">
+          {activeTab === 'dashboard' && (
+            <DashboardTab complaints_q={complaints_q} reward_points_q={reward_points_q} />
+          )}
+          {activeTab === 'complaint' && <RaiseComplaintTab />}
+          {activeTab === 'game' && <GamifiedLearningTab />}
+          {activeTab === 'assistant' && <ShuchiAITab />}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
+function DashboardTab({
+  complaints_q,
+  reward_points_q
+}: {
+  complaints_q: any;
+  reward_points_q: any;
+}) {
+  return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1"></div>
-
-        <div className="flex items-center justify-center gap-4 pt-8">
-          <Button
-            onClick={() => router.push('/complaint')}
-            className="group v relative overflow-hidden rounded-full border-2 border-emerald-400/50 bg-gradient-to-r from-emerald-700 to-lime-700 px-4 py-3 text-lg font-bold text-white shadow-2xl shadow-emerald-900/50 transition-all duration-300 hover:scale-105 hover:border-emerald-400/70 hover:shadow-emerald-400/60 focus:ring-4 focus:ring-emerald-300"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              <MdReportProblem className="h-6 w-6 animate-bounce text-yellow-300 drop-shadow-md group-hover:animate-none" />
-              Raise a Complaint
-            </span>
-            <span className="absolute inset-0 bg-gradient-to-r from-lime-500 via-green-600 to-emerald-600 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-30"></span>
-          </Button>
-          <Button
-            onClick={() => setPlaying(true)}
-            className="group relative overflow-hidden rounded-full border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-4 text-xl font-bold text-white shadow-2xl shadow-amber-900/50 transition-all duration-300 hover:scale-105 hover:border-amber-400/70 hover:shadow-amber-400/60 focus:ring-4 focus:ring-amber-300"
-          >
-            <span className="relative z-10 flex items-center gap-3">
-              <span className="text-2xl">🎮</span>
-              <span className="text-base">Play Waste Segregation Game</span>
-            </span>
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20"></span>
-          </Button>
-        </div>
-
-        <div className="flex flex-1 justify-end">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="group flex items-center gap-2 rounded-full border-2 border-emerald-400/60 bg-gradient-to-r from-emerald-600 via-green-600 to-lime-600 px-5 py-4 text-white shadow-2xl ring-2 shadow-emerald-900/60 ring-emerald-400/50 transition-all hover:scale-105 hover:border-emerald-400/80 hover:shadow-emerald-400/80 focus:ring-4 focus:ring-emerald-300 focus:outline-hidden">
-                <Bot className="-mt-1 size-8 text-emerald-100 drop-shadow-sm" />
-                <span className="text-lg font-bold">ShuchiAI</span>
-                <span className="absolute inset-0 -z-10 rounded-full bg-emerald-300/0 blur-md transition-all duration-300 group-hover:bg-emerald-300/20" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="h-[70vh] w-full overflow-hidden p-0 outline-hidden sm:max-w-4xl lg:max-w-5xl">
-              <DialogHeader className="sr-only">
-                <DialogTitle>ShuchiAI Chat</DialogTitle>
-                <DialogDescription>Chat assistant dialog</DialogDescription>
-              </DialogHeader>
-              <ChatBot />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<BadgeCheck className="size-5 text-emerald-600" />}
@@ -237,7 +324,7 @@ export default function UserDashPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {complaints_q.data.map((complaint) => {
+                {complaints_q.data.map((complaint: any) => {
                   const formatStatus = (status: string) => {
                     if (status === 'resolved') return 'Resolved';
                     if (status === 'in_progress') return 'In Progress';
@@ -390,7 +477,7 @@ export default function UserDashPage() {
                     ))}
                   </Pie>
                   <ChartTooltip
-                    content={({ payload, label }) => {
+                    content={({ payload }) => {
                       if (!payload || payload.length === 0) return null;
                       const data = payload[0].payload;
                       return (
@@ -560,45 +647,61 @@ export default function UserDashPage() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
 
-      {/* <div className="grid gap-4 lg:grid-cols-4">
-        {environmentalImpact.map((impact, index) => (
-          <Card key={index}>
-            <CardHeader className="pb-2">
-              <CardDescription className="text-xs">{impact.metric}</CardDescription>
-              <div className="flex items-baseline gap-2">
-                <CardTitle className="text-2xl">{impact.value}</CardTitle>
-                <span className="text-sm text-muted-foreground">{impact.unit}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{ value: { label: impact.metric, color: 'hsl(158 64% 52%)' } }}
-                className="h-20"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart
-                    data={[{ value: impact.value, max: impact.max }]}
-                    startAngle={90}
-                    endAngle={-270}
-                    innerRadius="60%"
-                    outerRadius="90%"
-                  >
-                    <RadialBar
-                      dataKey="value"
-                      cornerRadius={10}
-                      fill="var(--color-value)"
-                      opacity={0.8}
-                    />
-                  </RadialBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        ))}
-      </div> */}
+function RaiseComplaintTab() {
+  return (
+    <div className="space-y-4">
+      <ComplaintPage />
+    </div>
+  );
+}
 
-      {/* Game preview could be embedded here in future */}
+function GamifiedLearningTab() {
+  const [playing, setPlaying] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      {!playing ? (
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <h2 className="text-xl font-semibold">Gamified Learning</h2>
+          <p className="max-w-xl text-center text-sm text-muted-foreground">
+            Play the waste segregation game to learn how to dispose of different types of waste in a
+            fun, interactive way.
+          </p>
+          <Button
+            onClick={() => setPlaying(true)}
+            className="group relative overflow-hidden rounded-full border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-base font-bold text-white shadow-2xl shadow-amber-900/50 transition-all duration-300 hover:scale-105 hover:border-amber-400/70 hover:shadow-amber-400/60 focus:ring-4 focus:ring-amber-300"
+          >
+            <span className="relative z-10 flex items-center gap-3">
+              <span className="text-2xl">🎮</span>
+              <span>Start Waste Segregation Game</span>
+            </span>
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20" />
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setPlaying(false)}>
+              Exit Game
+            </Button>
+          </div>
+          <div className="space-y-6">
+            <GameComp onExit={() => setPlaying(false)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShuchiAITab() {
+  return (
+    <div className="flex h-[70vh] flex-col overflow-hidden rounded-xl border bg-background">
+      <ChatBot />
     </div>
   );
 }

@@ -8,11 +8,7 @@ export default async function UserDashboard() {
     redirect('/login');
   }
 
-  return (
-    <div className="container mx-auto">
-      <UserDashPage />
-    </div>
-  );
+  return <UserDashPage />;
 }
 
 export const metadata = {
