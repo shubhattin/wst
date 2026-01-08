@@ -162,10 +162,10 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
 
   if (!gameStarted) {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-8 rounded-2xl border border-gray-700 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-8 rounded-2xl border border-gray-700 bg-linear-to-br from-gray-900 via-gray-800 to-gray-900">
         <div className="space-y-4 text-center">
           <div className="mb-4 text-8xl">♻️</div>
-          <h1 className="bg-gradient-to-r from-cyan-600 to-green-600 bg-clip-text text-4xl font-bold text-transparent">
+          <h1 className="bg-linear-to-r from-cyan-600 to-green-600 bg-clip-text text-4xl font-bold text-transparent">
             Waste Sorting Game
           </h1>
           <p className="text-xl text-gray-300">Learn to sort waste correctly!</p>
@@ -179,7 +179,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
         <div className="flex gap-4">
           <button
             onClick={startGame}
-            className="flex items-center gap-2 rounded-full border border-amber-600/40 bg-gradient-to-r from-amber-700 via-orange-700 to-amber-800 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700"
+            className="flex items-center gap-2 rounded-full border border-amber-600/40 bg-linear-to-r from-amber-700 via-orange-700 to-amber-800 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700"
           >
             <span className="mr-2 text-3xl">🎮</span> Start Game
           </button>
@@ -199,7 +199,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
 
   if (!currentItem) {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-8 rounded-2xl border border-gray-700 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="flex min-h-[80vh] flex-col items-center justify-center space-y-8 rounded-2xl border border-gray-700 bg-linear-to-br from-gray-900 via-gray-800 to-gray-900">
         <div className="space-y-4 text-center">
           <div className="mb-4 text-8xl">🏆</div>
           <h2 className="text-4xl font-bold text-green-600">Congratulations!</h2>
@@ -211,7 +211,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
         <div className="flex gap-4">
           <button
             onClick={resetGame}
-            className="rounded-full border border-emerald-600/40 bg-gradient-to-r from-emerald-700 to-green-800 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-emerald-600 hover:to-green-700"
+            className="rounded-full border border-emerald-600/40 bg-linear-to-r from-emerald-700 to-green-800 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-emerald-600 hover:to-green-700"
           >
             🔄 Play Again
           </button>
@@ -229,7 +229,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
   }
 
   return (
-    <div className="min-h-[80vh] rounded-2xl border border-gray-700 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+    <div className="min-h-[80vh] rounded-2xl border border-gray-700 bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div className="text-2xl font-bold text-green-600">Score: {score}</div>

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { FaRecycle } from 'react-icons/fa';
 import { RiDashboardFill, RiRobotFill } from 'react-icons/ri';
 import { IoMegaphoneSharp, IoGameController } from 'react-icons/io5';
+import { Truck } from 'lucide-react';
 import {
   ChartContainer,
   ChartLegend,
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import GameComp from '../game/GameComp';
+import PickupMissed from '../pickup/PickupMissed';
 import { Bot, User } from 'lucide-react';
 import { Response } from '~/components/ai-elements/response';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -119,7 +121,7 @@ const environmentalImpact = [
 
 const monthlyGoal = 500;
 
-type UserDashboardTab = 'dashboard' | 'complaint' | 'game' | 'assistant';
+type UserDashboardTab = 'dashboard' | 'complaint' | 'game' | 'assistant' | 'pickup';
 
 export default function UserDashPage() {
   const trpc = useTRPC();
@@ -151,6 +153,7 @@ export default function UserDashPage() {
     if (tabParam === 'complaint') return 'complaint';
     if (tabParam === 'game') return 'game';
     if (tabParam === 'assistant') return 'assistant';
+    if (tabParam === 'pickup') return 'pickup';
     return 'dashboard';
   });
 
@@ -161,7 +164,9 @@ export default function UserDashPage() {
         ? 'Raise a Complaint'
         : activeTab === 'game'
           ? 'Gamified Learning'
-          : 'ShuchiAI Assistant';
+          : activeTab === 'assistant'
+            ? 'ShuchiAI Assistant'
+            : 'Pickup Missed';
   const currentSubtitle =
     activeTab === 'dashboard'
       ? 'Overview of your activity, complaints, and locality insights.'
@@ -169,16 +174,18 @@ export default function UserDashPage() {
         ? 'Pin the location and submit a new cleanliness complaint.'
         : activeTab === 'game'
           ? 'Learn waste segregation through an interactive game.'
-          : 'Chat with ShuchiAI for help with complaints, insights, and rewards.';
+          : activeTab === 'assistant'
+            ? 'Chat with ShuchiAI for help with complaints, insights, and rewards.'
+            : 'Report missed waste collection and contact authorities.';
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
+        <SidebarHeader className="border-b border-sidebar-border/60 bg-linear-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
           <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <Link
               href="/"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
             >
               <FaRecycle className="h-6 w-6 text-emerald-400" />
             </Link>
@@ -208,7 +215,7 @@ export default function UserDashPage() {
                     className={cn(
                       'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'dashboard'
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        ? 'bg-linear-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
@@ -232,7 +239,7 @@ export default function UserDashPage() {
                     className={cn(
                       'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'complaint'
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        ? 'bg-linear-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
@@ -256,7 +263,7 @@ export default function UserDashPage() {
                     className={cn(
                       'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'game'
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        ? 'bg-linear-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
@@ -280,7 +287,7 @@ export default function UserDashPage() {
                     className={cn(
                       'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
                       activeTab === 'assistant'
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        ? 'bg-linear-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
@@ -295,16 +302,40 @@ export default function UserDashPage() {
                     </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    size="lg"
+                    isActive={activeTab === 'pickup'}
+                    onClick={() => setActiveTab('pickup')}
+                    tooltip="Pickup Missed"
+                    className={cn(
+                      'justify-start gap-3 rounded-lg px-3 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0',
+                      activeTab === 'pickup'
+                        ? 'bg-linear-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    )}
+                  >
+                    <Truck
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        activeTab === 'pickup' ? 'text-emerald-400' : 'text-red-400'
+                      )}
+                    />
+                    <span className="font-medium group-data-[collapsible=icon]:hidden">
+                      Pickup Missed
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
         <SidebarSeparator className="mx-0" />
-        <SidebarFooter className="border-t border-sidebar-border/60 bg-gradient-to-br from-sidebar/80 to-transparent">
+        <SidebarFooter className="border-t border-sidebar-border/60 bg-linear-to-br from-sidebar/80 to-transparent">
           <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
-              <Avatar className="relative h-9 w-9 bg-gradient-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
+              <div className="absolute inset-0 rounded-full bg-linear-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
+              <Avatar className="relative h-9 w-9 bg-linear-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
                 <AvatarFallback className="bg-transparent text-xs font-bold text-white">
                   {userInitials}
                 </AvatarFallback>
@@ -344,6 +375,7 @@ export default function UserDashPage() {
           {activeTab === 'complaint' && <RaiseComplaintTab onTabChange={setActiveTab} />}
           {activeTab === 'game' && <GamifiedLearningTab />}
           {activeTab === 'assistant' && <ShuchiAITab />}
+          {activeTab === 'pickup' && <PickupMissedTab />}
         </main>
       </SidebarInset>
     </SidebarProvider>
@@ -772,13 +804,13 @@ function GamifiedLearningTab() {
           </p>
           <Button
             onClick={() => setPlaying(true)}
-            className="group relative overflow-hidden rounded-full border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-base font-bold text-white shadow-2xl shadow-amber-900/50 transition-all duration-300 hover:scale-105 hover:border-amber-400/70 hover:shadow-amber-400/60 focus:ring-4 focus:ring-amber-300"
+            className="group relative overflow-hidden rounded-full border-2 border-amber-400/50 bg-linear-to-r from-amber-600 to-orange-600 px-6 py-4 text-base font-bold text-white shadow-2xl shadow-amber-900/50 transition-all duration-300 hover:scale-105 hover:border-amber-400/70 hover:shadow-amber-400/60 focus:ring-4 focus:ring-amber-300"
           >
             <span className="relative z-10 flex items-center gap-3">
               <span className="text-2xl">🎮</span>
               <span>Start Waste Segregation Game</span>
             </span>
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20" />
+            <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-20" />
           </Button>
         </div>
       ) : (
@@ -801,6 +833,14 @@ function ShuchiAITab() {
   return (
     <div className="flex h-[70vh] flex-col overflow-hidden rounded-xl border bg-background">
       <ChatBot />
+    </div>
+  );
+}
+
+function PickupMissedTab() {
+  return (
+    <div className="space-y-4">
+      <PickupMissed />
     </div>
   );
 }
@@ -899,7 +939,7 @@ const ChatBot = () => {
                 className={cn(
                   'max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm',
                   isUser
-                    ? 'bg-gradient-to-r from-emerald-600 to-lime-600 text-white'
+                    ? 'bg-linear-to-r from-emerald-600 to-lime-600 text-white'
                     : 'border bg-background text-foreground'
                 )}
               >

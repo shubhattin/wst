@@ -296,7 +296,7 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
               initial={{ backgroundPosition: '0% 50%' }}
               animate={{ backgroundPosition: '100% 50%' }}
               transition={{ duration: 2.2, repeat: Infinity, repeatType: 'mirror' }}
-              className="h-20 w-full bg-gradient-to-r from-emerald-500/25 via-blue-500/25 to-violet-500/25 bg-[length:200%_200%]"
+              className="h-20 w-full bg-linear-to-r from-emerald-500/25 via-blue-500/25 to-violet-500/25 bg-size-[200%_200%]"
             />
             <CardHeader className="-mt-10">
               <div className="flex items-center gap-3">
@@ -317,7 +317,7 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
                   </motion.span>
                 </span>
                 <div>
-                  <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                  <CardTitle className="flex items-center gap-2 bg-linear-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
                     Thank you for reporting!
                     <Sparkles className="size-4 text-blue-500" />
                   </CardTitle>

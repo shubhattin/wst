@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   ChartContainer,
@@ -970,7 +970,7 @@ export default function AdminDashPage() {
               <FaRecycle className="h-6 w-6 text-emerald-400" />
             </Link>
             <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-sm font-bold uppercase tracking-wide text-emerald-300">
+              <span className="truncate text-sm font-bold tracking-wide text-emerald-300 uppercase">
                 Nirmal Setu
               </span>
               <span className="truncate text-xs font-medium text-sidebar-foreground/60">
@@ -981,7 +981,7 @@ export default function AdminDashPage() {
         </SidebarHeader>
         <SidebarContent className="overflow-hidden px-2 py-4">
           <SidebarGroup>
-            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-sidebar-foreground/50">
+            <SidebarGroupLabel className="mb-2 px-2 text-xs font-bold tracking-wider text-sidebar-foreground/50 uppercase">
               Navigation
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -991,7 +991,7 @@ export default function AdminDashPage() {
                     size="lg"
                     isActive
                     tooltip="Admin Dashboard"
-                    className="justify-start gap-3 rounded-lg px-3 transition-all duration-200 bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 hover:from-emerald-500/25 hover:to-emerald-600/15 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                    className="justify-start gap-3 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 px-3 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 hover:from-emerald-500/25 hover:to-emerald-600/15"
                   >
                     <RiDashboardFill className="h-5 w-5 shrink-0 text-emerald-400" />
                     <span className="font-medium group-data-[collapsible=icon]:hidden">
@@ -1025,7 +1025,7 @@ export default function AdminDashPage() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors hover:bg-red-500/20 hover:text-red-400 group-data-[collapsible=icon]:hidden"
+              className="h-8 w-8 shrink-0 text-sidebar-foreground/60 transition-colors group-data-[collapsible=icon]:hidden hover:bg-red-500/20 hover:text-red-400"
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -1037,7 +1037,7 @@ export default function AdminDashPage() {
         <header className="flex h-16 items-center gap-3 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
           <div className="flex flex-col">
-            <h1 className="text-lg font-semibold leading-tight">Admin Dashboard</h1>
+            <h1 className="text-lg leading-tight font-semibold">Admin Dashboard</h1>
             <p className="text-xs text-muted-foreground">
               Monitor and manage complaints, performance, and operations.
             </p>
