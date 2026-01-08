@@ -17,6 +17,7 @@ export const complaints = pgTable('complaints', {
   category: varchar({ length: 30 }).notNull().$type<z.infer<typeof CATEGORY_ENUM_SCHEMA>>(),
   longitude: real().notNull(),
   latitude: real().notNull(),
+  image_s3_key: text(),
   resolved_at: timestamp(),
   resolved_by: text().references(() => user.id),
   created_at: timestamp().notNull().defaultNow(),
