@@ -442,49 +442,63 @@ function AdminMain() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {(complaint.status === 'open' ||
-                              complaint.status === 'in_progress') && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    disabled={update_status_mut.isPending}
-                                    aria-label="Review complaint"
-                                  >
-                                    <MoreHorizontal className="size-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-44">
-                                  <DropdownMenuLabel>Workflow</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => setReviewComplaintId(complaint.id)}
-                                  >
-                                    <ClipboardList className="mr-2 size-4" />
-                                    Review
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => setCloseDialogComplaintId(complaint.id)}
-                                    className="text-amber-600 focus:text-amber-600"
-                                    disabled={update_status_mut.isPending}
-                                  >
-                                    <XCircle className="mr-2 size-4" />
-                                    Close
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleDeleteClick(complaint.id)}
-                                    disabled={delete_complaint_mut.isPending}
-                                    className="text-red-600 focus:text-red-600"
-                                  >
-                                    <Trash2 className="mr-2 size-4" />
-                                    Delete Complaint
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  disabled={update_status_mut.isPending}
+                                  aria-label="Complaint actions"
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                {(complaint.status === 'open' ||
+                                  complaint.status === 'in_progress') && (
+                                  <>
+                                    <DropdownMenuLabel>Workflow</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setReviewComplaintId(complaint.id)}
+                                    >
+                                      <ClipboardList className="mr-2 size-4" />
+                                      Review
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setCloseDialogComplaintId(complaint.id)}
+                                      className="text-amber-600 focus:text-amber-600"
+                                      disabled={update_status_mut.isPending}
+                                    >
+                                      <XCircle className="mr-2 size-4" />
+                                      Close
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                {(complaint.status === 'resolved' ||
+                                  complaint.status === 'closed') && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => setReviewComplaintId(complaint.id)}
+                                    >
+                                      <ClipboardList className="mr-2 size-4" />
+                                      View
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(complaint.id)}
+                                  disabled={delete_complaint_mut.isPending}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 size-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -980,8 +994,16 @@ function AdminMain() {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Review Complaint</DialogTitle>
-            <DialogDescription>Validate the report and update its status.</DialogDescription>
+            <DialogTitle>
+              {reviewComplaint?.status === 'resolved' || reviewComplaint?.status === 'closed'
+                ? 'View Complaint'
+                : 'Review Complaint'}
+            </DialogTitle>
+            <DialogDescription>
+              {reviewComplaint?.status === 'resolved' || reviewComplaint?.status === 'closed'
+                ? 'View complaint details and evidence.'
+                : 'Validate the report and update its status.'}
+            </DialogDescription>
           </DialogHeader>
           {reviewComplaint ? (
             <div className="space-y-5">

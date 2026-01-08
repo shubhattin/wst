@@ -4,6 +4,7 @@ import { complaints, user_data } from '~/db/schema';
 import { db } from '~/db/db';
 import { z } from 'zod';
 import { eq, sql } from 'drizzle-orm';
+import { deleteAssetFile } from '~/tools/s3/upload_file.server';
 
 const list_complaints_route = protectedProcedure.query(async ({ ctx }) => {
   const isAdmin = ctx.user.role === 'admin';
@@ -76,6 +77,13 @@ const delete_complaint_route = protectedAdminProcedure
   )
   .mutation(async ({ input }) => {
     const { id } = input;
+    const complaint = await db.query.complaints.findFirst({
+      where: (tbl, { eq }) => eq(tbl.id, id)
+    });
+    if (!complaint) return;
+    if (complaint.image_s3_key) {
+      await deleteAssetFile(complaint.image_s3_key);
+    }
     await db.delete(complaints).where(eq(complaints.id, id));
   });
 
