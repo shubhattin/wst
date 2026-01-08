@@ -1,39 +1,9 @@
-import { ComplaintSchemaZod, STATUS_ENUM_SCHEMA } from '~/db/schema_zod';
+import { STATUS_ENUM_SCHEMA } from '~/db/schema_zod';
 import { t, protectedProcedure, protectedAdminProcedure } from '../trpc_init';
 import { complaints, user_data } from '~/db/schema';
 import { db } from '~/db/db';
 import { z } from 'zod';
 import { eq, sql } from 'drizzle-orm';
-
-const submit_new_complaint_route = protectedProcedure
-  .input(
-    ComplaintSchemaZod.pick({
-      title: true,
-      description: true,
-      category: true,
-      longitude: true,
-      latitude: true
-    })
-  )
-  .mutation(async ({ ctx: { user }, input }) => {
-    const { title, description, category, longitude, latitude } = input;
-    const complaint = await db
-      .insert(complaints)
-      .values({
-        title,
-        description,
-        category,
-        longitude,
-        latitude,
-        user_id: user.id,
-        status: 'open'
-      })
-      .returning();
-
-    return {
-      id: complaint[0].id
-    };
-  });
 
 const list_complaints_route = protectedProcedure.query(async ({ ctx }) => {
   const isAdmin = ctx.user.role === 'admin';
@@ -120,7 +90,6 @@ const user_reward_points_route = protectedProcedure.query(async ({ ctx: { user }
 });
 
 export const complaints_router = t.router({
-  submit_new_complaint: submit_new_complaint_route,
   list_complaints: list_complaints_route,
   update_status: update_status_route,
   delete_complaint: delete_complaint_route,
