@@ -29,7 +29,8 @@ export const user_data = pgTable('user_data', {
   id: text()
     .primaryKey()
     .references(() => user.id),
-  reward_points: integer().notNull().default(0)
+  reward_points: integer().notNull().default(0),
+  address: text()
 });
 
 // relations
