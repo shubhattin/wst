@@ -183,7 +183,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
           >
             <span className="mr-2 text-3xl">🎮</span> Start Game
           </button>
-          {onExit && (
+          {/* {onExit && (
             <button
               onClick={onExit}
               className="flex items-center gap-2 rounded-full border border-gray-600 bg-gray-700 px-6 py-4 text-lg font-semibold text-gray-200 transition-all duration-200 hover:bg-gray-600"
@@ -191,7 +191,7 @@ export default function GameComp({ onExit }: { onExit?: () => void }) {
               <IoMdArrowRoundBack className="h-5 w-5" />
               Back
             </button>
-          )}
+          )} */}
         </div>
       </div>
     );

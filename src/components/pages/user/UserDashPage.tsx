@@ -759,7 +759,7 @@ function RaiseComplaintTab({ onTabChange }: { onTabChange: (tab: UserDashboardTa
 }
 
 function GamifiedLearningTab() {
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -783,11 +783,11 @@ function GamifiedLearningTab() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          {/* <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={() => setPlaying(false)}>
               Exit Game
             </Button>
-          </div>
+          </div> */}
           <div className="space-y-6">
             <GameComp onExit={() => setPlaying(false)} />
           </div>
@@ -840,8 +840,7 @@ const ChatBot = () => {
 
   useEffect(() => {
     if (status === 'ready') {
-      const inputEl =
-        formRef.current?.querySelector<HTMLInputElement>('input[data-slot="input"]');
+      const inputEl = formRef.current?.querySelector<HTMLInputElement>('input[data-slot="input"]');
       inputEl?.focus();
     }
   }, [status]);
