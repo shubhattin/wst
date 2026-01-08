@@ -91,6 +91,7 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
   const [category, setCategory] = useState<'biodegradable' | 'non-biodegradable' | 'other' | ''>(
     ''
   );
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [done, setDone] = useState(false);
   const [refId, setRefId] = useState<string | null>(null);
 
@@ -227,18 +228,30 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
     marker.position = coords;
   }, [coords, map, marker, mapLoadState]);
 
-  const submit_new_complaint_mut = useMutation(
-    trpc.complaints.submit_new_complaint.mutationOptions({
-      onSuccess: async (data) => {
-        setRefId(data.id);
-        setDone(true);
-        await queryClient.invalidateQueries(trpc.complaints.list_complaints.queryOptions());
-      },
-      onError: (error) => {
-        toast.error(error.message);
+  const submit_new_complaint_mut = useMutation<{ id: string }, Error, FormData>({
+    mutationFn: async (payload) => {
+      const response = await fetch('/api/submit_complaint', {
+        method: 'POST',
+        body: payload
+      });
+      if (!response.ok) {
+        const errorPayload = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(errorPayload?.message ?? 'Failed to submit complaint');
       }
-    })
-  );
+      return response.json() as Promise<{ id: string }>;
+    },
+    onSuccess: async (data) => {
+      setRefId(data.id);
+      setDone(true);
+      setSelectedImage(null);
+      await queryClient.invalidateQueries(trpc.complaints.list_complaints.queryOptions());
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -265,13 +278,17 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
       return;
     }
 
-    submit_new_complaint_mut.mutate({
-      title: title.trim(),
-      description: description.trim(),
-      category: category,
-      longitude: coords.lng,
-      latitude: coords.lat
-    });
+    const payload = new FormData();
+    payload.append('title', title.trim());
+    payload.append('description', description.trim());
+    payload.append('category', category);
+    payload.append('longitude', coords.lng.toString());
+    payload.append('latitude', coords.lat.toString());
+    if (selectedImage) {
+      payload.append('image', selectedImage);
+    }
+
+    submit_new_complaint_mut.mutate(payload);
   }
 
   if (done) {
@@ -374,6 +391,7 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
                     setTitle('');
                     setDescription('');
                     setCategory('');
+                    setSelectedImage(null);
                     formRef.current?.reset();
                   }}
                   className="transition-transform hover:scale-[1.02]"
@@ -445,7 +463,9 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
       <Card>
         <CardHeader>
           <CardTitle>Raise a Complaint</CardTitle>
-          <CardDescription>This is a mock form. No data is stored.</CardDescription>
+          <CardDescription>
+            Submissions are forwarded to the local authority for verification.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
@@ -491,7 +511,18 @@ export default function ComplaintPage({ onTabChange }: ComplaintPageProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="image">Image (optional)</Label>
-              <Input id="image" name="image" type="file" accept="image/*" />
+              <Input
+                id="image"
+                name="image"
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  setSelectedImage(event.target.files?.[0] ?? null);
+                }}
+              />
+              {selectedImage ? (
+                <p className="text-xs text-muted-foreground">Selected file: {selectedImage.name}</p>
+              ) : null}
             </div>
             <div className="space-y-1">
               <Label>Selected Coordinates</Label>

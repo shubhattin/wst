@@ -58,7 +58,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { inferRouterOutputs } from '@trpc/server';
 import { useTRPC } from '~/api/client';
 import { toast } from 'sonner';
 import React, { useContext, useState } from 'react';
@@ -86,6 +95,7 @@ import { AppContext } from '~/components/AddDataContext';
 import { signOut } from '~/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { AppRouter } from '~/api/trpc_router';
 
 const trendData = [
   { month: 'Jan', raised: 120, resolved: 80, pending: 40, avgResolutionTime: 32 },
@@ -174,13 +184,56 @@ const priorityDistribution = [
 
 const resolutionRate = 90; // percent
 
+type ComplaintsList = inferRouterOutputs<AppRouter>['complaints']['list_complaints'];
+type ComplaintItem = ComplaintsList[number];
+
 function AdminMain() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [complaintToDelete, setComplaintToDelete] = useState<string | null>(null);
+  const [reviewComplaintId, setReviewComplaintId] = useState<string | null>(null);
+  const [closeDialogComplaintId, setCloseDialogComplaintId] = useState<string | null>(null);
 
   const complaints_q = useQuery(trpc.complaints.list_complaints.queryOptions());
+
+  const complaintsData: ComplaintsList = complaints_q.data ?? [];
+  const reviewComplaint: ComplaintItem | null =
+    reviewComplaintId != null
+      ? (complaintsData.find((complaint) => complaint.id === reviewComplaintId) ?? null)
+      : null;
+  const closeDialogComplaint: ComplaintItem | null =
+    closeDialogComplaintId != null
+      ? (complaintsData.find((complaint) => complaint.id === closeDialogComplaintId) ?? null)
+      : null;
+  const reviewDialogOpen = Boolean(reviewComplaintId && reviewComplaint);
+
+  const reviewImageQuery = useQuery<string>({
+    queryKey: ['complaint-image', reviewComplaint?.id, reviewComplaint?.image_s3_key],
+    queryFn: async ({ queryKey }) => {
+      const [, complaintId] = queryKey as [string, string | undefined, string | undefined];
+      if (!complaintId) {
+        throw new Error('Missing complaint id');
+      }
+      const response = await fetch('/api/complaint_image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ complaintId })
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        url?: string;
+        message?: string;
+      } | null;
+      if (!response.ok || !payload?.url) {
+        throw new Error(payload?.message ?? 'Failed to load complaint image');
+      }
+      return payload.url;
+    },
+    enabled: Boolean(reviewDialogOpen && reviewComplaint?.image_s3_key),
+    staleTime: 1000 * 60 * 4
+  });
 
   const update_status_mut = useMutation(
     trpc.complaints.update_status.mutationOptions({
@@ -248,11 +301,49 @@ function AdminMain() {
           onSuccess: () => {
             setDeleteDialogOpen(false);
             setComplaintToDelete(null);
+          },
+          onError: () => {
+            setDeleteDialogOpen(false);
+            setComplaintToDelete(null);
           }
         }
       );
     }
   };
+
+  const handleCloseConfirm = () => {
+    if (!closeDialogComplaintId) return;
+    const targetId = closeDialogComplaintId;
+    update_status_mut.mutate(
+      { id: targetId, status: 'closed' },
+      {
+        onSuccess: () => {
+          setCloseDialogComplaintId(null);
+          if (reviewComplaintId === targetId) {
+            setReviewComplaintId(null);
+          }
+        }
+      }
+    );
+  };
+
+  const formatStatus = (status: ComplaintItem['status']) => {
+    if (status === 'resolved') return 'Resolved';
+    if (status === 'in_progress') return 'In Progress';
+    if (status === 'closed') return 'Closed';
+    return 'Open';
+  };
+
+  const formatDate = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  const formatLocation = (lat: number, lng: number) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
   return (
     <div className="space-y-6">
@@ -317,28 +408,8 @@ function AdminMain() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {complaints_q.data && complaints_q.data.length > 0 ? (
-                  complaints_q.data.map((complaint) => {
-                    const formatStatus = (status: string) => {
-                      if (status === 'resolved') return 'Resolved';
-                      if (status === 'in_progress') return 'In Progress';
-                      if (status === 'closed') return 'Closed';
-                      return 'Open';
-                    };
-
-                    const formatDate = (date: Date | string) => {
-                      const d = typeof date === 'string' ? new Date(date) : date;
-                      return d.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                      });
-                    };
-
-                    const formatLocation = (lat: number, lng: number) => {
-                      return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    };
-
+                {complaintsData.length > 0 ? (
+                  complaintsData.map((complaint) => {
                     return (
                       <TableRow key={complaint.id}>
                         <TableCell className="font-medium">
@@ -370,65 +441,65 @@ function AdminMain() {
                           {complaint.created_at ? formatDate(complaint.created_at) : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                disabled={
-                                  update_status_mut.isPending || delete_complaint_mut.isPending
-                                }
-                              >
-                                <MoreHorizontal className="size-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {complaint.status !== 'open' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleStatusUpdate(complaint.id, 'open')}
+                          <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
                                   disabled={update_status_mut.isPending}
+                                  aria-label="Complaint actions"
                                 >
-                                  <CheckCircle className="mr-2 size-4" /> Mark as Open
-                                </DropdownMenuItem>
-                              )}
-                              {complaint.status !== 'in_progress' && (
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                {(complaint.status === 'open' ||
+                                  complaint.status === 'in_progress') && (
+                                  <>
+                                    <DropdownMenuLabel>Workflow</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setReviewComplaintId(complaint.id)}
+                                    >
+                                      <ClipboardList className="mr-2 size-4" />
+                                      Review
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setCloseDialogComplaintId(complaint.id)}
+                                      className="text-amber-600 focus:text-amber-600"
+                                      disabled={update_status_mut.isPending}
+                                    >
+                                      <XCircle className="mr-2 size-4" />
+                                      Close
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                {(complaint.status === 'resolved' ||
+                                  complaint.status === 'closed') && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => setReviewComplaintId(complaint.id)}
+                                    >
+                                      <ClipboardList className="mr-2 size-4" />
+                                      View
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
                                 <DropdownMenuItem
-                                  onClick={() => handleStatusUpdate(complaint.id, 'in_progress')}
-                                  disabled={update_status_mut.isPending}
+                                  onClick={() => handleDeleteClick(complaint.id)}
+                                  disabled={delete_complaint_mut.isPending}
+                                  className="text-red-600 focus:text-red-600"
                                 >
-                                  <CheckCircle className="mr-2 size-4" /> Mark as In Progress
+                                  <Trash2 className="mr-2 size-4" />
+                                  Delete
                                 </DropdownMenuItem>
-                              )}
-                              {complaint.status !== 'resolved' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleStatusUpdate(complaint.id, 'resolved')}
-                                  disabled={update_status_mut.isPending}
-                                >
-                                  <CheckCircle className="mr-2 size-4 text-emerald-600" /> Mark as
-                                  Resolved
-                                </DropdownMenuItem>
-                              )}
-                              {complaint.status !== 'closed' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleStatusUpdate(complaint.id, 'closed')}
-                                  disabled={update_status_mut.isPending}
-                                >
-                                  <XCircle className="mr-2 size-4" /> Mark as Closed
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(complaint.id)}
-                                disabled={delete_complaint_mut.isPending}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 size-4" /> Delete Complaint
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -901,7 +972,7 @@ function AdminMain() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-muted">
                         <div
-                          className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600"
+                          className="h-2 rounded-full bg-linear-to-r from-green-500 to-emerald-600"
                           style={{ width: `${Math.min(100, (score / 8) * 100)}%` }}
                         />
                       </div>
@@ -913,8 +984,181 @@ function AdminMain() {
         </Card>
       </div>
 
+      <Dialog
+        open={reviewDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviewComplaintId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {reviewComplaint?.status === 'resolved' || reviewComplaint?.status === 'closed'
+                ? 'View Complaint'
+                : 'Review Complaint'}
+            </DialogTitle>
+            <DialogDescription>
+              {reviewComplaint?.status === 'resolved' || reviewComplaint?.status === 'closed'
+                ? 'View complaint details and evidence.'
+                : 'Validate the report and update its status.'}
+            </DialogDescription>
+          </DialogHeader>
+          {reviewComplaint ? (
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Title</p>
+                  <p className="text-sm font-semibold">{reviewComplaint.title}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Status</p>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
+                      reviewComplaint.status === 'resolved'
+                        ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
+                        : reviewComplaint.status === 'in_progress'
+                          ? 'border-cyan-700 bg-cyan-900/30 text-cyan-300'
+                          : reviewComplaint.status === 'closed'
+                            ? 'border-red-700 bg-red-900/30 text-red-300'
+                            : 'border-amber-700 bg-amber-900/30 text-amber-300'
+                    }`}
+                  >
+                    {formatStatus(reviewComplaint.status)}
+                  </span>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-xs text-muted-foreground uppercase">Description</p>
+                  <p className="rounded-md border bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                    {reviewComplaint.description?.trim()
+                      ? reviewComplaint.description
+                      : 'No description provided.'}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Category</p>
+                  <p className="text-sm capitalize">{reviewComplaint.category}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Location</p>
+                  <p className="font-mono text-sm">
+                    {formatLocation(reviewComplaint.latitude, reviewComplaint.longitude)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Reported on</p>
+                  <p className="text-sm">
+                    {reviewComplaint.created_at ? formatDate(reviewComplaint.created_at) : 'N/A'}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Evidence</p>
+                {reviewComplaint.image_s3_key ? (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
+                    {reviewImageQuery.isLoading ? (
+                      <Skeleton className="h-full w-full" />
+                    ) : reviewImageQuery.isError ? (
+                      <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                        {reviewImageQuery.error instanceof Error
+                          ? reviewImageQuery.error.message
+                          : 'Unable to load image.'}
+                      </div>
+                    ) : (
+                      <img
+                        src={reviewImageQuery.data}
+                        alt="Complaint evidence"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Image not attached.</p>
+                )}
+              </div>
+              <DialogFooter className="flex flex-wrap gap-3">
+                {reviewComplaint.status !== 'resolved' && reviewComplaint.status !== 'closed' && (
+                  <>
+                    {reviewComplaint.status === 'open' && (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleStatusUpdate(reviewComplaint.id, 'in_progress')}
+                        disabled={update_status_mut.isPending}
+                      >
+                        Move to In Progress
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => handleStatusUpdate(reviewComplaint.id, 'resolved')}
+                      disabled={update_status_mut.isPending}
+                      className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                    >
+                      Mark as Resolved
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setCloseDialogComplaintId(reviewComplaint.id)}
+                      disabled={update_status_mut.isPending}
+                    >
+                      Close as Unresolved
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Select a complaint to review its details.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(closeDialogComplaintId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCloseDialogComplaintId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close complaint?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Closing marks the complaint as unresolved. You can reopen it later if additional
+              action is needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-md border bg-muted/40 p-3 text-sm">
+            {closeDialogComplaint?.title || 'No complaint selected.'}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={update_status_mut.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCloseConfirm}
+              disabled={update_status_mut.isPending}
+              className="bg-amber-600 text-white hover:bg-amber-600/90 focus-visible:ring-amber-500"
+            >
+              Close Complaint
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setComplaintToDelete(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -924,7 +1168,7 @@ function AdminMain() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setComplaintToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={delete_complaint_mut.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={delete_complaint_mut.isPending}
@@ -961,11 +1205,11 @@ export default function AdminDashPage() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        <SidebarHeader className="border-b border-sidebar-border/60 bg-gradient-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
+        <SidebarHeader className="border-b border-sidebar-border/60 bg-linear-to-br from-emerald-900/40 via-emerald-900/10 to-transparent">
           <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <Link
               href="/"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500/30 to-emerald-600/20 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:from-emerald-500/40 hover:to-emerald-600/30 hover:ring-emerald-500/50"
             >
               <FaRecycle className="h-6 w-6 text-emerald-400" />
             </Link>
@@ -991,7 +1235,7 @@ export default function AdminDashPage() {
                     size="lg"
                     isActive
                     tooltip="Admin Dashboard"
-                    className="justify-start gap-3 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 px-3 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 hover:from-emerald-500/25 hover:to-emerald-600/15"
+                    className="justify-start gap-3 rounded-lg bg-linear-to-r from-emerald-500/20 to-emerald-600/10 px-3 text-emerald-100 shadow-md ring-1 ring-emerald-500/30 transition-all duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 hover:from-emerald-500/25 hover:to-emerald-600/15"
                   >
                     <RiDashboardFill className="h-5 w-5 shrink-0 text-emerald-400" />
                     <span className="font-medium group-data-[collapsible=icon]:hidden">
@@ -1004,11 +1248,11 @@ export default function AdminDashPage() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarSeparator className="mx-0" />
-        <SidebarFooter className="border-t border-sidebar-border/60 bg-gradient-to-br from-sidebar/80 to-transparent">
+        <SidebarFooter className="border-t border-sidebar-border/60 bg-linear-to-br from-sidebar/80 to-transparent">
           <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
-              <Avatar className="relative h-9 w-9 bg-gradient-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
+              <div className="absolute inset-0 rounded-full bg-linear-to-br from-emerald-500 to-cyan-500 opacity-30 blur-sm" />
+              <Avatar className="relative h-9 w-9 bg-linear-to-br from-emerald-600 to-cyan-600 ring-1 ring-emerald-500/30">
                 <AvatarFallback className="bg-transparent text-xs font-bold text-white">
                   {userInitials}
                 </AvatarFallback>
