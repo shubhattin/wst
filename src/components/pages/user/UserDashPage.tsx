@@ -424,11 +424,11 @@ function DashboardTab({
 
       {/* My Complaints Table */}
       <Card className="shadow-sm">
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-4">
           <CardTitle>My Complaints</CardTitle>
           <CardDescription>Track your submitted complaints and their status</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2 sm:pt-4">
           {complaints_q.isLoading || complaints_q.isPending ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -443,69 +443,75 @@ function DashboardTab({
               ))}
             </div>
           ) : complaints_q.data && complaints_q.data.length > 0 ? (
-            <Table className="rounded-lg">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {complaints_q.data.map((complaint: any) => {
-                  const formatStatus = (status: string) => {
-                    if (status === 'resolved') return 'Resolved';
-                    if (status === 'in_progress') return 'In Progress';
-                    if (status === 'closed') return 'Closed';
-                    return 'Open';
-                  };
+            <div className="-mx-2 overflow-x-auto sm:mx-0">
+              <Table className="min-w-[720px] rounded-lg text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">ID</TableHead>
+                    <TableHead className="whitespace-nowrap">Location</TableHead>
+                    <TableHead className="whitespace-nowrap">Category</TableHead>
+                    <TableHead className="whitespace-nowrap">Title</TableHead>
+                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="whitespace-nowrap">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {complaints_q.data.map((complaint: any) => {
+                    const formatStatus = (status: string) => {
+                      if (status === 'resolved') return 'Resolved';
+                      if (status === 'in_progress') return 'In Progress';
+                      if (status === 'closed') return 'Closed';
+                      return 'Open';
+                    };
 
-                  const formatDate = (date: Date | string) => {
-                    const d = typeof date === 'string' ? new Date(date) : date;
-                    return d.toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit'
-                    });
-                  };
+                    const formatDate = (date: Date | string) => {
+                      const d = typeof date === 'string' ? new Date(date) : date;
+                      return d.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                      });
+                    };
 
-                  const formatLocation = (lat: number, lng: number) => {
-                    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                  };
+                    const formatLocation = (lat: number, lng: number) => {
+                      return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    };
 
-                  return (
-                    <TableRow key={complaint.id}>
-                      <TableCell className="font-medium">{complaint.id.substring(0, 8)}</TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <MapPin className="size-3 text-muted-foreground" />
-                        {formatLocation(complaint.latitude, complaint.longitude)}
-                      </TableCell>
-                      <TableCell className="capitalize">{complaint.category}</TableCell>
-                      <TableCell className="max-w-xs truncate">{complaint.title}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
-                            complaint.status === 'resolved'
-                              ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
-                              : complaint.status === 'in_progress'
-                                ? 'border-cyan-700 bg-cyan-900/30 text-cyan-400'
-                                : 'border-amber-700 bg-amber-900/30 text-amber-400'
-                          }`}
-                        >
-                          {formatStatus(complaint.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {complaint.created_at ? formatDate(complaint.created_at) : 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow key={complaint.id}>
+                        <TableCell className="font-medium">
+                          {complaint.id.substring(0, 8)}
+                        </TableCell>
+                        <TableCell className="flex items-center gap-1 whitespace-nowrap">
+                          <MapPin className="size-3 text-muted-foreground" />
+                          {formatLocation(complaint.latitude, complaint.longitude)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap capitalize">
+                          {complaint.category}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{complaint.title}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
+                              complaint.status === 'resolved'
+                                ? 'border-emerald-700 bg-emerald-900/30 text-emerald-400'
+                                : complaint.status === 'in_progress'
+                                  ? 'border-cyan-700 bg-cyan-900/30 text-cyan-400'
+                                  : 'border-amber-700 bg-amber-900/30 text-amber-400'
+                            }`}
+                          >
+                            {formatStatus(complaint.status)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {complaint.created_at ? formatDate(complaint.created_at) : 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-4 text-4xl">✨</div>
@@ -518,20 +524,20 @@ function DashboardTab({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
+      <div className="grid items-stretch gap-4 lg:grid-cols-3">
+        <Card className="flex h-full flex-col lg:col-span-2">
+          <CardHeader className="pb-3 sm:pb-4">
             <CardTitle>My Complaints & Satisfaction</CardTitle>
             <CardDescription>Tracking resolution progress and satisfaction ratings</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 pt-2 sm:pt-4">
             <ChartContainer
               config={{
                 open: { label: 'Open', color: 'hsl(0 84% 60%)' },
                 resolved: { label: 'Resolved', color: 'hsl(152.4 76.2% 40%)' },
                 satisfaction: { label: 'Satisfaction', color: 'hsl(217 91% 60%)' }
               }}
-              className="h-72"
+              className="h-[260px]"
             >
               <ComposedChart data={myComplaints}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -577,12 +583,12 @@ function DashboardTab({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex h-full flex-col">
+          <CardHeader className="pb-3 sm:pb-4">
             <CardTitle>Complaint Categories</CardTitle>
             <CardDescription>Distribution by waste type</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 pt-2 sm:pt-4">
             <ChartContainer
               config={{
                 biodegradable: { label: 'Biodegradable', color: '#10B981' },
@@ -590,7 +596,7 @@ function DashboardTab({
                 eWaste: { label: 'E-Waste', color: '#EF4444' },
                 hazardous: { label: 'Hazardous', color: '#8B5CF6' }
               }}
-              className="h-72"
+              className="h-[260px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -623,7 +629,7 @@ function DashboardTab({
                   />
                   <ChartLegend
                     content={({ payload }) => (
-                      <ul className="grid grid-cols-2 gap-1 text-xs">
+                      <ul className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         {payload?.map((entry, index) => (
                           <li key={index} className="flex items-center gap-1">
                             <div
