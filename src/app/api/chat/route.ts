@@ -1,5 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { convertToModelMessages, stepCountIs, streamText, UIMessage } from 'ai';
 import { z } from 'zod';
 import { db } from '~/db/db';
 import { auth } from '~/lib/auth';
@@ -33,8 +33,9 @@ export async function POST(req: Request) {
         .describe('Number of latest complaints to fetch (max 10).')
     }),
     execute: async ({ limit }: { limit?: number }) => {
+      console.log('getUserComplaintsTool', limit);
       const complaints = await getUserComplaints(session.user.id, limit ?? LIMIT);
-
+      console.log('complaints', complaints);
       return {
         complaints
       };
@@ -45,11 +46,11 @@ export async function POST(req: Request) {
     model: openrouter_text_model('google/gemini-2.0-flash-001'),
     // model: openrouter_text_model('google/gemini-2.5-flash'),
     system: format_string_text(SYSTEM_PROMPT, { user_id: session.user.id }),
-    messages: [...convertToModelMessages(messages)],
+    messages: [...(await convertToModelMessages(messages))],
     tools: {
       getUserComplaints: getUserComplaintsTool
     },
-    toolChoice: 'auto'
+    stopWhen: stepCountIs(3)
   });
 
   return result.toUIMessageStreamResponse();
@@ -89,7 +90,8 @@ const getUserComplaints = async (user_id: string, limit: number = LIMIT) => {
 
   return data.map((complaint) => ({
     ...complaint,
-    resolved_at: formatToIST(complaint.resolved_at)
+    resolved_at: formatToIST(complaint.resolved_at),
+    id: complaint.id.toString().substring(0, 5)
   }));
 };
 
