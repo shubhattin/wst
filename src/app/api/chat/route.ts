@@ -33,9 +33,8 @@ export async function POST(req: Request) {
         .describe('Number of latest complaints to fetch (max 10).')
     }),
     execute: async ({ limit }: { limit?: number }) => {
-      console.log('getUserComplaintsTool', limit);
       const complaints = await getUserComplaints(session.user.id, limit ?? LIMIT);
-      console.log('complaints', complaints);
+
       return {
         complaints
       };
@@ -142,4 +141,5 @@ Do not answer any question that is not related to the app or the services provid
 ## Tool Call behaviour
 - You can tool access view 10 latest complaints by the user.
 - When asked by user to summarise, view complaints use the tool for that.
+- You will receive timestampt in ISO. Format the time properly in this format : 8th Dec, 1:23 pm
 ` as const;
