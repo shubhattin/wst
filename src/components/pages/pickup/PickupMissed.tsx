@@ -19,7 +19,16 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Truck, MapPin, AlertTriangle, CheckCircle, XCircle, Home, Loader2 } from 'lucide-react';
+import {
+  Truck,
+  MapPin,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Home,
+  Loader2,
+  Edit
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PickupMissed() {
@@ -58,6 +67,7 @@ export default function PickupMissed() {
 
   // State for dialog
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [addressDialogMode, setAddressDialogMode] = useState<'add' | 'update'>('add');
   const [addressInput, setAddressInput] = useState('');
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [complaintSubmitted, setComplaintSubmitted] = useState(false);
@@ -71,12 +81,26 @@ export default function PickupMissed() {
 
   const handlePickupComplaint = async () => {
     if (!addressQuery.data?.address) {
-      setIsAddressDialogOpen(true);
+      handleAddAddress();
       return;
     }
 
     setSubmissionStatus('idle');
     pickupMissedMut.mutateAsync();
+  };
+
+  const handleAddAddress = () => {
+    setAddressInput('');
+    setAddressDialogMode('add');
+    setIsAddressDialogOpen(true);
+  };
+
+  const handleEditAddress = () => {
+    if (addressQuery.data?.address) {
+      setAddressInput(addressQuery.data.address);
+      setAddressDialogMode('update');
+    }
+    setIsAddressDialogOpen(true);
   };
 
   return (
@@ -107,77 +131,101 @@ export default function PickupMissed() {
               <Skeleton className="h-4 w-1/2" />
             </div>
           ) : addressQuery.data?.address ? (
-            <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4">
-              <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Registered Address</p>
-                <p className="text-sm text-muted-foreground">{addressQuery.data.address}</p>
+            <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/50 p-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Registered Address</p>
+                  <p className="text-sm text-muted-foreground">{addressQuery.data.address}</p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleEditAddress}
+                className="h-8 w-8 p-0 hover:bg-muted"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
             </div>
           ) : (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 No address found. Please add your address to enable pickup complaint feature.
-                <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="ml-2">
-                      Add Address
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Your Address</DialogTitle>
-                      <DialogDescription>
-                        Please provide your complete address so we can locate your area for waste
-                        pickup services.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleAddressSubmit}>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="address">Address</Label>
-                          <Textarea
-                            id="address"
-                            placeholder="Enter your full address (street, city, state, pincode)"
-                            value={addressInput}
-                            onChange={(e) => setAddressInput(e.target.value)}
-                            disabled={updateAddressMutation.isPending}
-                            rows={3}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsAddressDialogOpen(false)}
-                          disabled={updateAddressMutation.isPending}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={!addressInput.trim() || updateAddressMutation.isPending}
-                        >
-                          {updateAddressMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Address'
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="outline" size="sm" className="ml-2" onClick={handleAddAddress}>
+                  Add Address
+                </Button>
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
+
+      {/* Address Dialog */}
+      <Dialog
+        open={isAddressDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddressDialogOpen(open);
+          if (!open) {
+            setAddressInput('');
+            setAddressDialogMode('add');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {addressDialogMode === 'update' ? 'Update Address' : 'Add Your Address'}
+            </DialogTitle>
+            <DialogDescription>
+              {addressDialogMode === 'update'
+                ? 'Update your address information for accurate waste pickup services.'
+                : 'Please provide your complete address so we can locate your area for waste pickup services.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddressSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  placeholder="Enter your full address (street, city, state, pincode)"
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  disabled={updateAddressMutation.isPending}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddressDialogOpen(false)}
+                disabled={updateAddressMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!addressInput.trim() || updateAddressMutation.isPending}
+              >
+                {updateAddressMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : addressDialogMode === 'update' ? (
+                  'Update Address'
+                ) : (
+                  'Save Address'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Pickup Complaint Card */}
       {complaintSubmitted ? (

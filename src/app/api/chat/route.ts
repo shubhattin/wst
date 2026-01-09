@@ -1,6 +1,9 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { z } from 'zod';
+import { db } from '~/db/db';
 import { auth } from '~/lib/auth';
+import { format_string_text } from '~/tools/kry';
 
 const openrouter_text_model = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
 
@@ -17,15 +20,78 @@ export async function POST(req: Request) {
 
   const { messages }: { messages: UIMessage[] } = await req.json();
 
+  const getUserComplaintsTool = {
+    description:
+      'Fetch up to 10 latest complaints for the currently authenticated user, with resolved_at converted to IST (Asia/Kolkata).',
+    inputSchema: z.object({
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(LIMIT)
+        .optional()
+        .describe('Number of latest complaints to fetch (max 10).')
+    }),
+    execute: async ({ limit }: { limit?: number }) => {
+      const complaints = await getUserComplaints(session.user.id, limit ?? LIMIT);
+
+      return {
+        complaints
+      };
+    }
+  };
+
   const result = streamText({
     model: openrouter_text_model('google/gemini-2.0-flash-001'),
     // model: openrouter_text_model('google/gemini-2.5-flash'),
-    system: SYSTEM_PROMPT,
-    messages: [...convertToModelMessages(messages)]
+    system: format_string_text(SYSTEM_PROMPT, { user_id: session.user.id }),
+    messages: [...convertToModelMessages(messages)],
+    tools: {
+      getUserComplaints: getUserComplaintsTool
+    },
+    toolChoice: 'auto'
   });
 
   return result.toUIMessageStreamResponse();
 }
+
+const LIMIT = 10;
+
+const formatToIST = (date: Date | null) => {
+  if (!date) return null;
+
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(date);
+};
+
+const getUserComplaints = async (user_id: string, limit: number = LIMIT) => {
+  const data = await db.query.complaints.findMany({
+    where: (tbl, { eq }) => eq(tbl.user_id, user_id),
+    orderBy: (tbl, { desc }) => desc(tbl.created_at),
+    limit,
+    columns: {
+      title: true,
+      created_at: true,
+      status: true,
+      resolved_at: true,
+      category: true,
+      id: true,
+      description: true
+    }
+  });
+
+  return data.map((complaint) => ({
+    ...complaint,
+    resolved_at: formatToIST(complaint.resolved_at)
+  }));
+};
 
 const SYSTEM_PROMPT = `
 You are ShuchiAI — the in‑app assistant for the Nirmal Setu platform (AI‑powered urban waste management).
@@ -70,4 +136,8 @@ Before answering
 - Match the user’s language when possible; default to English.
 
 Do not answer any question that is not related to the app or the services provided by the app.
+  
+## Tool Call behaviour
+- You can tool access view 10 latest complaints by the user.
+- When asked by user to summarise, view complaints use the tool for that.
 ` as const;
