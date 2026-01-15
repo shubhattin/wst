@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM oven/bun:alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -45,4 +45,4 @@ EXPOSE 8080
 ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]
